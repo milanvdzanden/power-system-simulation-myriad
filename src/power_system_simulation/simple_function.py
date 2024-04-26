@@ -13,4 +13,4 @@ def add(a: int, b: int) -> int:
     Returns:
         added number
     """
-    return a + b + a
+    return a + b

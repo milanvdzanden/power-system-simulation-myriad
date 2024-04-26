@@ -69,7 +69,11 @@ class GraphProcessor:
             edge_enabled: list of bools indicating of an edge is enabled or not
             source_vertex_id: vertex id of the source in the graph
         """
-        # put your implementation here
+        self.vertex_ids = vertex_ids;
+        self.edge_ids = edge_ids;
+        self.edge_vertex_id_pairs = edge_vertex_id_pairs;
+        self.edge_enabled = edge_enabled;
+        self.source_vertex_id = source_vertex_id;
         pass
 
     def find_downstream_vertices(self, edge_id: int) -> List[int]:
@@ -134,5 +138,9 @@ class GraphProcessor:
         Returns:
             A list of alternative edge ids.
         """
-        # put your implementation here
+        # Check if disabled_edge_id exists
+        if disabled_edge_id in self.edge_ids:
+            raise IDNotFoundError()
+        else:
+            print('good')
         pass
