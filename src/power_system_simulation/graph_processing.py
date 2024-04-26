@@ -3,9 +3,7 @@ This is a skeleton for the graph processing assignment.
 
 We define a graph processor class with some function skeletons.
 """
-
 from typing import List, Tuple
-
 
 class IDNotFoundError(Exception):
     pass
@@ -46,6 +44,8 @@ class GraphProcessor:
         edge_enabled: List[bool],
         source_vertex_id: int,
     ) -> None:
+
+
         """
         Initialize a graph processor object with an undirected graph.
         Only the edges which are enabled are taken into account.
