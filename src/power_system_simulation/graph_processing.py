@@ -158,4 +158,16 @@ class GraphProcessor:
             raise IDNotFoundError()
         else:
             print('good')
+        
+        
+        # Check if the edge is already disabled with and index
+        edge_index = self.edge_ids.index(disabled_edge_id)
+        
+        # Check if disabled_edge_id is already disabled
+        if not self.edge_enabled[edge_index]:
+            raise EdgeAlreadyDisabledError()
+        
         pass
+       
+       
+         
