@@ -8,7 +8,6 @@ from typing import List, Tuple
 class IDNotFoundError(Exception):
     pass
 
-
 class InputLengthDoesNotMatchError(Exception):
     pass
 
