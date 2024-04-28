@@ -19,5 +19,5 @@ def test_altedges():
     assert set(gp.find_alternative_edges(3)) == set([8, 7])
     assert set(gp.find_alternative_edges(5)) == set([8])
     assert set(gp.find_alternative_edges(9)) == set([])
-    
+
 test_altedges();

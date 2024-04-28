@@ -141,6 +141,7 @@ class GraphProcessor:
         # QUESTIONS
         # What to give as an ouput if you need to enable multiple edges to be enabled to make it work for example: 7 AND 8 need to be enabled to work instead of 7 OR 8
         # Is a specific output order required?
+        # Is the pair list already directed in the right order (upstream, downstream)?
         
         # Ouput variable list
         output = []
