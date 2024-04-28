@@ -116,9 +116,7 @@ class GraphProcessor:
         If the disabled_edge_id is already disabled, it should raise EdgeAlreadyDisabledError.
         If there are no alternative to make the graph fully connected again, it should return empty list.
 
-
         For example, given the following graph:
-
         vertex_0 (source) --edge_1(enabled)-- vertex_2 --edge_9(enabled)-- vertex_10
                  |                               |
                  |                           edge_7(disabled)
@@ -192,6 +190,9 @@ class GraphProcessor:
                 G.add_nodes_from(self.vertex_ids)
                 G.add_edges_from(edge_vertex_id_pairs_enabled)
                 if nx.is_connected(G):
-                    output.append(edge)
-    
+                    try: 
+                        nx.find_cycle(G)
+                    except nx.NetworkXNoCycle:
+                        output.append(edge)
+                        
         return output

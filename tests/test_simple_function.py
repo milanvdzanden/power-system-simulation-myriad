@@ -5,9 +5,9 @@ src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.append(src_dir)
 
 import power_system_simulation.graph_processing as pss
+import networkx as nx
 
-def test_altedges():
-    
+def test_altedges():  
     vertex_ids = [0, 2, 4, 6, 10]
     edge_ids = [1, 3, 5, 7, 8, 9]
     edge_vertex_id_pairs = [(0, 2), (0, 4), (0, 6), (2, 4), (4, 6), (2, 10)]
