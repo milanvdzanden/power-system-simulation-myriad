@@ -3,10 +3,16 @@ This is a skeleton for the graph processing assignment.
 
 We define a graph processor class with some function skeletons.
 """
+
+
+import networkx as nx
 from typing import List, Tuple
+
+
 
 class IDNotFoundError(Exception):
     pass
+
 
 class InputLengthDoesNotMatchError(Exception):
     pass
@@ -43,8 +49,6 @@ class GraphProcessor:
         edge_enabled: List[bool],
         source_vertex_id: int,
     ) -> None:
-
-
         """
         Initialize a graph processor object with an undirected graph.
         Only the edges which are enabled are taken into account.
@@ -68,8 +72,13 @@ class GraphProcessor:
             source_vertex_id: vertex id of the source in the graph
         """
         # put your implementation here
+        self.vertex_ids = vertex_ids
+        self.edge_ids = edge_ids
+        self.edge_vertex_id_pairs = edge_vertex_id_pairs
+        self.edge_enabled = edge_enabled
+        self.source_vertex_id = source_vertex_id
         pass
-
+    
     def find_downstream_vertices(self, edge_id: int) -> List[int]:
         """
         Given an edge id, return all the vertices which are in the downstream of the edge,
@@ -94,7 +103,69 @@ class GraphProcessor:
         Returns:
             A list of all downstream vertices.
         """
-        # put your implementation here
+        vertex_ids = self.vertex_ids
+        edge_ids = self.edge_ids 
+        edge_vertex_id_pairs =  self.edge_vertex_id_pairs
+        edge_enabled = self.edge_enabled 
+        source_vertex_id = self.source_vertex_id 
+        output = []
+        
+        
+        
+        
+        
+        
+# List for storing all enabled edges, to use for finding out if the graph is fully connected
+        edge_vertex_id_pairs_enabled = []
+        
+        # For loop for finding all enabled edges
+        for edge_to_check in edge_vertex_id_pairs:
+            edge_to_check_index = edge_vertex_id_pairs.index(edge_to_check)
+            
+            if edge_enabled[edge_to_check_index] == True:
+                edge_vertex_id_pairs_enabled.append(edge_to_check)
+    
+        G = nx.Graph()
+        G.add_nodes_from(vertex_ids)
+        G.add_edges_from(edge_vertex_id_pairs_enabled)
+        # H = G.to_directed(as_view=True)
+        # test1= [x for x in H.nodes() if H.out_degree(x)==0 and H.in_degree(x)==1]
+        # print(test1[:])
+        # print(list(H.edges())[:])
+
+        for x in edge_ids:
+                if edge_ids[x] == edge_id:
+                    input_index_edge = x
+                    break
+      
+        
+        length_1 = len(nx.shortest_path(G, source_vertex_id, edge_vertex_id_pairs_enabled[input_index_edge][0] , weight=None))
+        length_2 = len(nx.shortest_path(G, source_vertex_id, edge_vertex_id_pairs_enabled[input_index_edge][1] , weight=None))
+        
+        shortest = (-1,-1)
+        
+        if length_1 < length_2 :
+            shortest = edge_vertex_id_pairs_enabled[input_index_edge][0]
+            for x in edge_ids:
+                if edge_vertex_id_pairs_enabled[x][0] == shortest:
+                    shortest_index_pairs = x
+                    break             
+            for x in edge_ids:
+                if x >= shortest_index_pairs:
+                    output.append(edge_vertex_id_pairs_enabled[x][1])
+                continue   
+             
+        else: 
+            shortest = edge_vertex_id_pairs_enabled[input_index_edge][1]           
+            for x in edge_ids:
+                if edge_vertex_id_pairs_enabled[x][0] == shortest:
+                    shortest_index_pairs = x
+                    break             
+            for x in edge_ids:
+                if x <= shortest_index_pairs:
+                    output.append(edge_vertex_id_pairs_enabled[x][1])
+                continue
+        print(output)
         pass
 
     def find_alternative_edges(self, disabled_edge_id: int) -> List[int]:
@@ -134,3 +205,4 @@ class GraphProcessor:
         """
         # put your implementation here
         pass
+
