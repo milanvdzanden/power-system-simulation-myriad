@@ -26,16 +26,38 @@ sys.path.append(src_dir)
         
 import power_system_simulation.graph_processing as pss       
 def test_add():
-    edge_id = 1
-    edge_ids = [0,1,2,3,4]
-    vertex_ids = [10,11,12,13,14,15]
-    edge_vertex_id_pairs = [[11,12],[12,13],[13,14],[14,10],[10,15]]
-    edge_enabled = [True,True,True,True,True]
-    source_vertex_id = 11
+    edge_id = 9
+    vertex_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    edge_ids =             [1,      2,      3,      4,      5,      6,      7,      8,      9,       10]
+    edge_vertex_id_pairs = [(2,6),  (1, 2), (2, 3), (3, 4), (6, 7), (6, 9), (4, 5), (7, 8), (9, 10), (1, 11)]
+    edge_enabled =         [True,   True,   True,   True,   True,   True,   True,   False,  True,    True]
+    source_vertex_id = 1
     gp = pss.GraphProcessor(vertex_ids, edge_ids,edge_vertex_id_pairs,edge_enabled,source_vertex_id)
     
-
-    gp.find_downstream_vertices(edge_id)
+    # assert set(gp.find_downstream_vertices(1)) == set([6, 7, 9, 10])
+    # assert set(gp.find_downstream_vertices(2)) == set([2, 3, 4, 5, 6, 7, 9, 10])
+    # assert set(gp.find_downstream_vertices(3)) == set([3, 4, 5])
+    # assert set(gp.find_downstream_vertices(4)) == set([4, 5])
+    # assert set(gp.find_downstream_vertices(5)) == set([7])
+    # assert set(gp.find_downstream_vertices(6)) == set([9, 10])
+    # assert set(gp.find_downstream_vertices(7)) == set([5])
+    # assert set(gp.find_downstream_vertices(8)) == set([]) # Edge 8 is disabled
+    # assert set(gp.find_downstream_vertices(9)) == set([10])
+    # assert set(gp.find_downstream_vertices(10)) == set([11])
+    
+    """
+    v1 ----- edge2 ------ v2 ----- edge3 ------ v3 ----- edge4 ------ v4 ----- edge7 ------ v5
+    |                      |
+  edge10                 edge1
+    |                      |                          (disabled)
+   v11                    v6 ----- edge5 ------ v7 ----- edge8 ------ v8
+                           |
+                         edge6
+                           |
+                          v9 ----- edge9 ------ v10
+    """
+    
+    print(gp.find_downstream_vertices(edge_id))
 
 test_add()
 

@@ -109,64 +109,75 @@ class GraphProcessor:
         edge_enabled = self.edge_enabled 
         source_vertex_id = self.source_vertex_id 
         output = []
-        
-        
-        
-        
-        
+
+        for x in range(len(edge_ids)):                      # Problem with disabled edges, indexes chaning places
+            if edge_ids[x] == edge_id:
+                input_index_edge = x
+                break
+        if edge_enabled[input_index_edge] == False:
+            return output
         
 # List for storing all enabled edges, to use for finding out if the graph is fully connected
-        edge_vertex_id_pairs_enabled = []
+        edge_vertex_id_pairs_enabled = []   
+        edge_ids_enabled = []
         
         # For loop for finding all enabled edges
-        for edge_to_check in edge_vertex_id_pairs:
+        for edge_to_check in edge_vertex_id_pairs:          # Problem with disabled edges, indexes chaning places
             edge_to_check_index = edge_vertex_id_pairs.index(edge_to_check)
             
             if edge_enabled[edge_to_check_index] == True:
+                edge_ids_enabled.append(edge_to_check)
                 edge_vertex_id_pairs_enabled.append(edge_to_check)
-    
+                
+        for x in range(len(edge_ids_enabled)):              # Problem with disabled edges, indexes chaning places
+            if edge_ids_enabled[x] == edge_id:
+                input_index_edge = x
+                break
+        
         G = nx.Graph()
         G.add_nodes_from(vertex_ids)
         G.add_edges_from(edge_vertex_id_pairs_enabled)
-        # H = G.to_directed(as_view=True)
-        # test1= [x for x in H.nodes() if H.out_degree(x)==0 and H.in_degree(x)==1]
-        # print(test1[:])
-        # print(list(H.edges())[:])
 
-        for x in edge_ids:
-                if edge_ids[x] == edge_id:
-                    input_index_edge = x
-                    break
-      
-        
-        length_1 = len(nx.shortest_path(G, source_vertex_id, edge_vertex_id_pairs_enabled[input_index_edge][0] , weight=None))
-        length_2 = len(nx.shortest_path(G, source_vertex_id, edge_vertex_id_pairs_enabled[input_index_edge][1] , weight=None))
-        
-        shortest = (-1,-1)
-        
-        if length_1 < length_2 :
-            shortest = edge_vertex_id_pairs_enabled[input_index_edge][0]
-            for x in edge_ids:
-                if edge_vertex_id_pairs_enabled[x][0] == shortest:
-                    shortest_index_pairs = x
-                    break             
-            for x in edge_ids:
-                if x >= shortest_index_pairs:
-                    output.append(edge_vertex_id_pairs_enabled[x][1])
-                continue   
-             
+# Determining shortest length to source
+        path_1 = nx.shortest_path(G, source_vertex_id, edge_vertex_id_pairs_enabled[input_index_edge][0] , weight=None)    
+        path_2 = nx.shortest_path(G, source_vertex_id, edge_vertex_id_pairs_enabled[input_index_edge][1] , weight=None)       
+
+        if len(path_1) < len(path_2):
+            shortest_path = path_1
+            shortest_index = 1
         else: 
-            shortest = edge_vertex_id_pairs_enabled[input_index_edge][1]           
-            for x in edge_ids:
-                if edge_vertex_id_pairs_enabled[x][0] == shortest:
-                    shortest_index_pairs = x
-                    break             
-            for x in edge_ids:
-                if x <= shortest_index_pairs:
-                    output.append(edge_vertex_id_pairs_enabled[x][1])
-                continue
+            shortest_path = path_2
+            shortest_index = 0
+            
+#Defines all paths from source to leaf nodes   
+        paths_to_leafs = []
+        stack = [(source_vertex_id, [source_vertex_id])]
+
+        while stack:
+            current_node, path = stack.pop()
+            if G.degree(current_node) == 1:  # Check for leaf node
+                paths_to_leafs.append(path)
+            else:
+                for neighbor in G.neighbors(current_node):
+                    if neighbor not in path:  # Avoid revisiting nodes
+                        stack.append((neighbor, path + [neighbor]))
+        
+        print(edge_vertex_id_pairs_enabled[input_index_edge])
+        # print(paths_to_leafs[:])
+        paths_to_leafs_including_input = []
+        for x in paths_to_leafs:
+            print(x)
+            if edge_vertex_id_pairs_enabled[input_index_edge][shortest_index] in x:
+                for y in x:
+                    print(y)
+                    if y not in paths_to_leafs_including_input:
+                        paths_to_leafs_including_input.append(y)
+                        
+        # print(paths_to_leafs_including_input)
+        # print(shortest_path)
+        output = list(set(paths_to_leafs_including_input) - set(shortest_path))
         print(output)
-        pass
+        return output
 
     def find_alternative_edges(self, disabled_edge_id: int) -> List[int]:
         """
