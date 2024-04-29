@@ -103,80 +103,78 @@ class GraphProcessor:
         Returns:
             A list of all downstream vertices.
         """
-        vertex_ids = self.vertex_ids
-        edge_ids = self.edge_ids 
-        edge_vertex_id_pairs =  self.edge_vertex_id_pairs
-        edge_enabled = self.edge_enabled 
-        source_vertex_id = self.source_vertex_id 
         output = []
-
-        for x in range(len(edge_ids)):                      # Problem with disabled edges, indexes chaning places
-            if edge_ids[x] == edge_id:
+        
+        for x in range(len(self.edge_ids)):                      # Problem with disabled edges, indexes chaning places
+            if self.edge_ids[x] == edge_id:
                 input_index_edge = x
                 break
-        if edge_enabled[input_index_edge] == False:
+        if self.edge_enabled[input_index_edge] == False:
             return output
         
-# List for storing all enabled edges, to use for finding out if the graph is fully connected
-        edge_vertex_id_pairs_enabled = []   
-        edge_ids_enabled = []
+        # Step 1: Calculate the islands and store them
+        # Step 2: Remove the input edge from the id_pairs list
+        # Step 3: Calculate the new islands
+        # Step 4: Remove the islands that were already there in Step 1
+        # Step 5: Check which remaining islands contain the source vertex, the other one IS the output
         
+        # List for storing all enabled edges, to use for finding out if the graph is fully connected
+        edge_vertex_id_pairs_enabled_before = []   
+        edge_ids_enabled_before = []
+             
         # For loop for finding all enabled edges
-        for edge_to_check in edge_vertex_id_pairs:          # Problem with disabled edges, indexes chaning places
-            edge_to_check_index = edge_vertex_id_pairs.index(edge_to_check)
+        for edge_to_check in self.edge_vertex_id_pairs:          
+            edge_to_check_index = self.edge_vertex_id_pairs.index(edge_to_check)
             
-            if edge_enabled[edge_to_check_index] == True:
-                edge_ids_enabled.append(edge_to_check)
-                edge_vertex_id_pairs_enabled.append(edge_to_check)
-                
-        for x in range(len(edge_ids_enabled)):              # Problem with disabled edges, indexes chaning places
-            if edge_ids_enabled[x] == edge_id:
-                input_index_edge = x
-                break
-        
+            if self.edge_enabled[edge_to_check_index] == True:
+                edge_ids_enabled_before.append(self.edge_ids[edge_to_check_index])
+                edge_vertex_id_pairs_enabled_before.append(edge_to_check)
+                    
+        #print(edge_vertex_id_pairs_enabled_before)
+        ## Island calculation before
         G = nx.Graph()
-        G.add_nodes_from(vertex_ids)
-        G.add_edges_from(edge_vertex_id_pairs_enabled)
-
-# Determining shortest length to source
-        path_1 = nx.shortest_path(G, source_vertex_id, edge_vertex_id_pairs_enabled[input_index_edge][0] , weight=None)    
-        path_2 = nx.shortest_path(G, source_vertex_id, edge_vertex_id_pairs_enabled[input_index_edge][1] , weight=None)       
-
-        if len(path_1) < len(path_2):
-            shortest_path = path_1
-            shortest_index = 1
-        else: 
-            shortest_path = path_2
-            shortest_index = 0
-            
-#Defines all paths from source to leaf nodes   
-        paths_to_leafs = []
-        stack = [(source_vertex_id, [source_vertex_id])]
-
-        while stack:
-            current_node, path = stack.pop()
-            if G.degree(current_node) == 1:  # Check for leaf node
-                paths_to_leafs.append(path)
-            else:
-                for neighbor in G.neighbors(current_node):
-                    if neighbor not in path:  # Avoid revisiting nodes
-                        stack.append((neighbor, path + [neighbor]))
+        G.add_nodes_from(self.vertex_ids)
+        G.add_edges_from(edge_vertex_id_pairs_enabled_before)
         
-        print(edge_vertex_id_pairs_enabled[input_index_edge])
-        # print(paths_to_leafs[:])
-        paths_to_leafs_including_input = []
-        for x in paths_to_leafs:
-            print(x)
-            if edge_vertex_id_pairs_enabled[input_index_edge][shortest_index] in x:
-                for y in x:
-                    print(y)
-                    if y not in paths_to_leafs_including_input:
-                        paths_to_leafs_including_input.append(y)
-                        
-        # print(paths_to_leafs_including_input)
-        # print(shortest_path)
-        output = list(set(paths_to_leafs_including_input) - set(shortest_path))
-        print(output)
+        list_of_islands_before = []
+             
+        for i, c in enumerate(nx.connected_components(G)):
+            list_of_islands_before.append(list(c))
+            # print(f"Island {i+1}: {c}")
+        ##
+            
+        edge_vertex_id_pairs_enabled_after = []   
+        edge_ids_enabled_after = [] # The list with the input edge removed
+        for edge_index in range(len(edge_ids_enabled_before)):
+            if edge_ids_enabled_before[edge_index] != edge_id: 
+                edge_ids_enabled_after.append(edge_ids_enabled_before[edge_index])
+                edge_vertex_id_pairs_enabled_after.append(edge_vertex_id_pairs_enabled_before[edge_index])
+        
+        ## Island calculation after
+        G = nx.Graph()
+        G.add_nodes_from(self.vertex_ids)
+        G.add_edges_from(edge_vertex_id_pairs_enabled_after)
+        
+        list_of_islands_after = []
+        
+        for i, c in enumerate(nx.connected_components(G)):
+            list_of_islands_after.append(list(c))
+            # print(f"Island {i+1}: {c}")
+        ##
+        
+        output_list = []
+        
+        for id_list in list_of_islands_after:
+            contains_source = False
+            if id_list in list_of_islands_before:
+                continue
+            for id in id_list:
+                if (id == self.source_vertex_id):
+                    contains_source = True
+            if not contains_source:
+                output_list.append(id_list)
+            
+        output = output_list[0]
         return output
 
     def find_alternative_edges(self, disabled_edge_id: int) -> List[int]:
