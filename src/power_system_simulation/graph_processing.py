@@ -105,12 +105,16 @@ class GraphProcessor:
         """
         output = []
         
-        for x in range(len(self.edge_ids)):                      # Problem with disabled edges, indexes chaning places
-            if self.edge_ids[x] == edge_id:
-                input_index_edge = x
-                break
+        # Calculate the index of the input edge
+        input_index_edge = self.edge_ids.index(edge_id)
+
+        # If the input edge is already disabled, return empty set
         if self.edge_enabled[input_index_edge] == False:
             return output
+        
+        # Check if disabled_edge_id exists
+        if edge_id not in self.edge_ids:
+            raise IDNotFoundError()
         
         # Step 1: Calculate the islands and store them
         # Step 2: Remove the input edge from the id_pairs list
@@ -130,8 +134,8 @@ class GraphProcessor:
                 edge_ids_enabled_before.append(self.edge_ids[edge_to_check_index])
                 edge_vertex_id_pairs_enabled_before.append(edge_to_check)
                     
-        #print(edge_vertex_id_pairs_enabled_before)
-        ## Island calculation before
+        # Step 1 is calculated here
+        ## Island calculation before removing the input edge
         G = nx.Graph()
         G.add_nodes_from(self.vertex_ids)
         G.add_edges_from(edge_vertex_id_pairs_enabled_before)
@@ -140,9 +144,9 @@ class GraphProcessor:
              
         for i, c in enumerate(nx.connected_components(G)):
             list_of_islands_before.append(list(c))
-            # print(f"Island {i+1}: {c}")
-        ##
             
+        # Step 2 is calculated here
+        # For loop for finding all enabled edges without the input edge
         edge_vertex_id_pairs_enabled_after = []   
         edge_ids_enabled_after = [] # The list with the input edge removed
         for edge_index in range(len(edge_ids_enabled_before)):
@@ -150,6 +154,7 @@ class GraphProcessor:
                 edge_ids_enabled_after.append(edge_ids_enabled_before[edge_index])
                 edge_vertex_id_pairs_enabled_after.append(edge_vertex_id_pairs_enabled_before[edge_index])
         
+        # Step 3: Calculate the new islands
         ## Island calculation after
         G = nx.Graph()
         G.add_nodes_from(self.vertex_ids)
@@ -159,11 +164,13 @@ class GraphProcessor:
         
         for i, c in enumerate(nx.connected_components(G)):
             list_of_islands_after.append(list(c))
-            # print(f"Island {i+1}: {c}")
-        ##
         
         output_list = []
         
+        # Step 4: Remove the islands that were already there in Step 1
+        # Step 5: Check which remaining islands contain the source vertex, the other one IS the output
+        # We loop through all the islands, if an island contains the source vertex it is removed, and if the island already existed initially it is also removed.
+        # What you are left with is a list of the downstream vertices
         for id_list in list_of_islands_after:
             contains_source = False
             if id_list in list_of_islands_before:

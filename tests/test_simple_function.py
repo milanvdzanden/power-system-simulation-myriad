@@ -1,23 +1,3 @@
-
-# import networkx as nx
-# import matplotlib.pyplot as plt
-# G = nx.Graph()
-# G.add_node(1)
-# G.add_node(2)
-# G.add_node(3)
-# G.add_edge(1,2)
-# G.add_edge(2,3,id=23)
-# nx.draw(G, with_labels = True)
-# plt.show()
-# print(list(G.edges(data=True))[1][2].get('id'))
-# print(G.edges(data=True))
-
-
-# vertex_ids = list(G.nodes(data=True))[],
-# edge_ids = list(G.edges(data=True))[][].get('id'),
-# edge_vertex_id_pairs = list(G.edges(data=True))[][],
-# edge_enabled: List[bool],
-# source_vertex_id: int,
 import os
 import sys
 import time
@@ -25,10 +5,10 @@ import time
 src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.append(src_dir)
         
+start_time = time.time()  
+
 import power_system_simulation.graph_processing as pss       
 def test_add():
-    start_time = time.time()   
-    
     # edge_id = 10
     vertex_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
     edge_ids =             [1,      2,      3,      4,      5,      6,      7,      8,      9,       10]
@@ -61,7 +41,8 @@ def test_add():
     """
     
     # print(gp.find_downstream_vertices(edge_id))
-    print("Process finished --- %s seconds ---" % (time.time() - start_time))
+    
+for i in range(100):
+  test_add()
 
-test_add()
-
+print("Process finished --- %s seconds ---" % (time.time() - start_time))
