@@ -7,7 +7,6 @@ We define a graph processor class with some function skeletons.
 from typing import List, Tuple
 import sys
 
-import matplotlib.pyplot as plt
 import networkx as nx
 
 class IDNotFoundError(Exception):
