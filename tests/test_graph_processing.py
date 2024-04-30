@@ -1,5 +1,6 @@
 import os
 import sys
+import pytest
 
 src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.append(src_dir)
@@ -19,5 +20,8 @@ def test_graph_processing():
     assert set(gp.find_alternative_edges(3)) == set([8, 7])
     assert set(gp.find_alternative_edges(5)) == set([8])
     assert set(gp.find_alternative_edges(9)) == set([])
-
+    
+    with pytest.raises(pss.IDNotFoundError) as excinfo:  
+        gp.find_alternative_edges(14)
+        
 test_graph_processing();

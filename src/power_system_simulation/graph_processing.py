@@ -145,18 +145,16 @@ class GraphProcessor:
         # Ouput variable list
         output = []
         
-        # Check if the edge is already disabled with and index
-        edge_index = self.edge_ids.index(disabled_edge_id)
-        
         # Check if disabled_edge_id exists
         if disabled_edge_id not in self.edge_ids:
             raise IDNotFoundError()
         
+        # Check if the edge is already disabled with and index
+        edge_index = self.edge_ids.index(disabled_edge_id)
         
         # Check if disabled_edge_id is already disabled
         if not self.edge_enabled[edge_index]:
             raise EdgeAlreadyDisabledError()
-        pass
     
         # Loop through all disabled edges
         # Enable that edge temporarily and check if it is again fully connected
