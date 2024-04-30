@@ -24,4 +24,7 @@ def test_graph_processing():
     with pytest.raises(pss.IDNotFoundError) as excinfo:  
         gp.find_alternative_edges(14)
         
+    with pytest.raises(pss.EdgeAlreadyDisabledError) as excinfo:  
+        gp.find_alternative_edges(7)
+        
 test_graph_processing();
