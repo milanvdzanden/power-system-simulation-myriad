@@ -4,11 +4,12 @@ This is a skeleton for the graph processing assignment.
 We define a graph processor class with some function skeletons.
 """
 
-from typing import List, Tuple
 import sys
+from typing import List, Tuple
 
 # import matplotlib.pyplot as plt
 import networkx as nx
+
 
 class IDNotFoundError(Exception):
     pass
@@ -141,56 +142,58 @@ class GraphProcessor:
         # QUESTIONS
         # What to give as an ouput if you need to enable multiple edges to be enabled to make it work for example: 7 AND 8 need to be enabled to work instead of 7 OR 8
         # Is a specific output order required?
-        
+
         # Ouput variable list
         output = []
-        
+
         # Check if disabled_edge_id exists
         if disabled_edge_id not in self.edge_ids:
             raise IDNotFoundError()
-        
+
         # Check if the edge is already disabled with and index
         edge_index = self.edge_ids.index(disabled_edge_id)
-        
+
         # Check if disabled_edge_id is already disabled
         if not self.edge_enabled[edge_index]:
             raise EdgeAlreadyDisabledError()
-    
+
         # Loop through all disabled edges
         # Enable that edge temporarily and check if it is again fully connected
         # Check if it is still non-circular
         # If all of this passed, the edge is an alternative edge
-    
+
         # Loop through ALL edges (both enabled and disabled)
         for edge in self.edge_ids:
             current_edge_index = self.edge_ids.index(edge)
-            
+
             # Check if the edge is disabled, if so, continue
             if self.edge_enabled[current_edge_index] == False:
-            
-                # Variable for temporary Edge disabling and then enable the edge in question (for the example above: edge ID 7 or 8)
+
+                # Variable for temporary Edge disabling and then enable the edge 
+                # in question (for the example above: edge ID 7 or 8)
                 temporary_edge_enabled = self.edge_enabled.copy()
                 temporary_edge_enabled[current_edge_index] = True
-                
-                # List for storing all enabled edges, to use for finding out if the graph is fully connected
+
+                # List for storing all enabled edges,
+                # to use for finding out if the graph is fully connected
                 edge_vertex_id_pairs_enabled = []
-                
+
                 # For loop for finding all enabled edges
                 for edge_to_check in self.edge_vertex_id_pairs:
                     edge_to_check_index = self.edge_vertex_id_pairs.index(edge_to_check)
-                    
+
                     # Leave out the input edge, since that one will be disabled
                     if temporary_edge_enabled[edge_to_check_index] == True and edge_to_check_index != edge_index:
                         edge_vertex_id_pairs_enabled.append(edge_to_check)
-                
+
                 # Check for fully connected-ness
                 G = nx.Graph()
                 G.add_nodes_from(self.vertex_ids)
                 G.add_edges_from(edge_vertex_id_pairs_enabled)
                 if nx.is_connected(G):
-                    try: 
+                    try:
                         nx.find_cycle(G)
                     except nx.NetworkXNoCycle:
                         output.append(edge)
-                        
+
         return output
