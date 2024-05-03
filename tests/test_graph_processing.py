@@ -1,4 +1,3 @@
-
 import os
 import sys
 
@@ -16,7 +15,7 @@ import power_system_simulation.graph_processing as pss
 def test_graph_generator():
     # Pre-set seed for random graph generation; Node amount
     pre_seed = 1
-    pre_nodes = 50
+    pre_nodes = 5
     # Create graph and assign source node
     graph = nx.random_labeled_rooted_tree(pre_nodes, seed=pre_seed)
     leaf_nodes = [node for node in graph.nodes() if graph.degree(node) == 1]
@@ -24,14 +23,23 @@ def test_graph_generator():
     source_node = leaf_nodes[0]
     return graph, source_node
 
-#Requires matplotlib. Does not work in VScode.
+
+# Requires matplotlib. Does not work in VScode.
 def test_graph_drawer(graph):
-    nx.draw(graph, node_size=10, labels = {node: node for node in graph.nodes()})
+    nx.draw(graph, node_size=10, labels={node: node for node in graph.nodes()})
 
 def test_graph_creation():
     # Working graph
     graph, source = test_graph_generator()
-    pss.GraphProcessor(list(graph.nodes), [x for x in range(0, len(list(graph.edges)))], list(graph.edges), [True for x in range(0, len(graph.nodes)-1)], source)
+    pss.GraphProcessor(
+        list(graph.nodes),
+        [x for x in range(0, len(list(graph.edges)))],
+        list(graph.edges),
+        [True for x in range(0, len(graph.edges))],
+        source,
+    )
+    print( source)
+
 
     # Working graph (cyclic though)
     vertex_ids = [0, 2, 4, 6, 10]
@@ -64,20 +72,22 @@ def test_graph_creation():
     t_edge_vertex_id_pairs = [(0, 2), (0, 4), (0, 999), (2, 4), (4, 6), (2, 10)]
     with pytest.raises(pss.IDNotFoundError, match=r".*T0"):
         pss.GraphProcessor(vertex_ids, edge_ids, t_edge_vertex_id_pairs, edge_enabled, source_vertex_id)
-        
+
     # Non-valid source_vertex_id
     t_source_vertex_id = 999
     with pytest.raises(pss.IDNotFoundError, match=r".*T1"):
         pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, t_source_vertex_id)
-        
+
     # Graph not fully connected
-    t_vertex_ids =  [0, 2, 4, 6, 10, 999]
+    t_vertex_ids = [0, 2, 4, 6, 10, 999]
     with pytest.raises(pss.GraphNotFullyConnectedError):
         pss.GraphProcessor(t_vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
 
     # Cyclic graph
+    t_edge_enabled = [True, True, True, True, True, True]
     with pytest.raises(pss.GraphCycleError):
-        pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
+        pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, t_edge_enabled, source_vertex_id)
+
 
 def test_graph_processing():
     vertex_ids = [0, 2, 4, 6, 10]
@@ -85,9 +95,15 @@ def test_graph_processing():
     edge_vertex_id_pairs = [(0, 2), (0, 4), (0, 6), (2, 4), (4, 6), (2, 10)]
     edge_enabled = [True, True, True, False, False, True]
     source_vertex_id = 0
-    #gp = pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
+    # gp = pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
     graph, source = test_graph_generator()
-    gp = pss.GraphProcessor(list(graph.nodes), [x for x in range(0, len(list(graph.edges)))], list(graph.edges), [True for x in range(0, len(graph.nodes)-1)], source)
+    gp = pss.GraphProcessor(
+        list(graph.nodes),
+        [x for x in range(0, len(list(graph.edges)))],
+        list(graph.edges),
+        [True for x in range(0, len(graph.nodes) - 1)],
+        source,
+    )
 
     assert set(gp.find_alternative_edges(1)) == set([7])
     assert set(gp.find_alternative_edges(3)) == set([8, 7])
@@ -99,6 +115,7 @@ def test_graph_processing():
 
     with pytest.raises(pss.EdgeAlreadyDisabledError) as excinfo:
         gp.find_alternative_edges(7)
+
 
 test_graph_creation()
 test_graph_processing()
