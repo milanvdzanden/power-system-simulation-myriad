@@ -6,7 +6,9 @@ We define a graph processor class with some function skeletons.
 
 import sys
 from typing import List, Tuple
+
 import networkx as nx
+
 
 class IDNotFoundError(Exception):
   def __init__(self, type):
@@ -94,7 +96,10 @@ class GraphProcessor:
         # Basic checks completed, graph can now be constructed.
         self.graph = nx.Graph();
         self.graph.add_nodes_from(vertex_ids)
-        self.graph.add_edges_from(edge_vertex_id_pairs)
+        edge_vertex_id_pairs_enabled = []
+        for x in range(0, len(edge_vertex_id_pairs)):
+          if edge_enabled[x] == True: edge_vertex_id_pairs_enabled.append(edge_vertex_id_pairs[x])
+        self.graph.add_edges_from(edge_vertex_id_pairs_enabled)
         # Check: graph - is fully connected? (Graph() is explicitly undirected, so no need to catch directed exception)
         if not nx.is_connected(self.graph):
           raise GraphNotFullyConnectedError();

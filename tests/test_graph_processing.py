@@ -11,6 +11,7 @@ import networkx as nx
 
 import power_system_simulation.graph_processing as pss
 
+
 # Move later to src if needed
 def test_graph_generator():
     # Pre-set seed for random graph generation; Node amount
