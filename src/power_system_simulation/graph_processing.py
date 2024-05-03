@@ -252,7 +252,7 @@ class GraphProcessor:
             A list of all downstream vertices.
         """
         pass
-      
+
     def find_alternative_edges(self, disabled_edge_id: int) -> List[int]:
         """
         Given an enabled edge, do the following analysis:
