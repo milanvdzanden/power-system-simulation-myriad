@@ -1,0 +1,256 @@
+"""
+This is a skeleton for the graph processing assignment.
+
+We define a graph processor class with some function skeletons.
+"""
+
+from typing import List, Tuple
+
+import networkx as nx
+
+
+class IDNotFoundError(Exception):
+    """
+    Error class for IDNotFoundError
+    """
+
+    def __init__(self, mode):
+        """
+        Prints the exception message using the standard exception class.
+
+        Args:
+          self: passes exception
+          mode: error type,
+            0 if vertex pair does not exist in vertex_ids
+            1 if source_vertex_id does not exist in vertex_ids
+        """
+        Exception.__init__(
+            self,
+            "IDNotFoundError: vertex pair does not exist in vertex_ids (if 0)"
+            + "or source_vertex_id does not exist in vertex_ids (if 1): T"
+            + str(mode),
+        )
+
+
+class InputLengthDoesNotMatchError(Exception):
+    """
+    Error class for InputLenghtDoesNotMatchError
+    """
+
+    def __init__(self, mode, l_primary_length, l_edge_ids):
+        """
+        Prints the exception message using the standard exception class.
+
+        Args:
+          self: passes exception
+          mode: error type,
+            0 if the length of edge_enabled is different than edge_ids
+            1 if the length of edge_vertex_id_pairs is different than edge_ids
+          l_primary_length: length of non-matching list,
+            edge_enabled if mode is 0
+            edge_vertex_id_pairs if mode is 1
+          l_edge_ids: length of edge_ids list
+        """
+        Exception.__init__(
+            self,
+            "InputLengthDoesNotMatchError:"
+            + "The length of edge_enabled"
+            + "(if 0) or edge_vertex_id_pairs (if 1) ("
+            + str(l_primary_length)
+            + ") is different than edge_ids ("
+            + str(l_edge_ids)
+            + "): T"
+            + str(mode),
+        )
+
+
+class IDNotUniqueError(Exception):
+    """
+    Error class for class IDNotUniqueError
+    """
+
+    def __init__(self, mode):
+        """
+        Prints the exception message using the standard exception class.
+
+        Args:
+          self: passes exception
+          mode: error type,
+            0 if there are non-unique vertices in the graph
+            1 if there are non-unique edges in the graph
+        """
+        Exception.__init__(
+            self,
+            "IDNotUniqueError: There are non-unique vertices (if 0)" + "or edges (if 1) in the graph: T" + str(mode),
+        )
+
+
+class GraphNotFullyConnectedError(Exception):
+    """
+    Error class for GraphNotFullyConnectedError
+    """
+
+    def __init__(self):
+        """
+        Prints the exception message using the standard exception class.
+
+        Args:
+          self: passes exception
+        """
+        Exception.__init__(self, "The graph is not fully connected.")
+
+
+class GraphCycleError(Exception):
+    """
+    Error class for GraphCycleError
+    """
+
+    def __init__(self):
+        """
+        Prints the exception message using the standard exception class.
+
+        Args:
+          self: passes exception
+        """
+        Exception.__init__(self, "The graph contains cycles.")
+
+
+class EdgeAlreadyDisabledError(Exception):
+    """
+    Error class for EdgeAlreadyDisabledError
+    """
+
+    def __init__(self, edge_disabled_id):
+        """
+        Prints the exception message using the standard exception class.
+
+        Args:
+          self: passes exception
+          edge_disabled_id: the id of the edge that is already disabled
+        """
+        Exception.__init__(self, "The edge is already disabled: " + str(edge_disabled_id))
+
+
+class GraphProcessor:
+    """
+    General documentation of this class.
+    You need to describe the purpose of this class and the functions in it.
+    We are using an undirected graph in the processor.
+    """
+
+    def __init__(
+        self,
+        vertex_ids: List[int],
+        edge_ids: List[int],
+        edge_vertex_id_pairs: List[Tuple[int, int]],
+        edge_enabled: List[bool],
+        source_vertex_id: int,
+    ) -> None:
+        """
+        Initialize a graph processor object with an undirected graph.
+        Only the edges which are enabled are taken into account.
+        Check if the input is valid and raise exceptions if not.
+        The following conditions should be checked:
+            1. vertex_ids and edge_ids should be unique. (IDNotUniqueError)
+            2. edge_vertex_id_pairs should have the same length as edge_ids.
+              (InputLengthDoesNotMatchError)
+            3. edge_vertex_id_pairs should contain valid vertex ids. (IDNotFoundError)
+            4. edge_enabled should have the same length as edge_ids. (InputLengthDoesNotMatchError)
+            5. source_vertex_id should be a valid vertex id. (IDNotFoundError)
+            6. The graph should be fully connected. (GraphNotFullyConnectedError)
+            7. The graph should not contain cycles. (GraphCycleError)
+        If one certain condition is not satisfied, the error in the parentheses should be raised.
+
+        Args:
+            vertex_ids: list of vertex ids
+            edge_ids: list of edge ids
+            edge_vertex_id_pairs: list of tuples of two integer
+                Each tuple is a vertex id pair of the edge.
+            edge_enabled: list of bools indicating of an edge is enabled or not
+            source_vertex_id: vertex id of the source in the graph
+        """
+        # Check: vertex_ids - is unique?
+        if not len(vertex_ids) == len(set(vertex_ids)):
+            raise IDNotUniqueError(0)
+        # Check: edge_ids - is unique?
+        if not len(edge_ids) == len(set(edge_ids)):
+            raise IDNotUniqueError(1)
+
+        # Check: edge_enabled and edge_ids - are same length?
+        if not len(edge_enabled) == len(edge_ids):
+            raise InputLengthDoesNotMatchError(0, len(edge_enabled), len(edge_ids))
+        # Check: edge_vertex_id_pairs and edge_ids - are same length?
+        if not len(edge_vertex_id_pairs) == len(edge_ids):
+            raise InputLengthDoesNotMatchError(1, len(edge_vertex_id_pairs), len(edge_ids))
+
+        # Check: edge_vertex_id_pairs - are vertex ids valid?
+        for x in edge_vertex_id_pairs:
+            if (x[0] not in vertex_ids) or (x[1] not in vertex_ids):
+                raise IDNotFoundError(0)
+        # Check: source_vertex_id - is source vortex id valid?
+        if source_vertex_id not in vertex_ids:
+            raise IDNotFoundError(1)
+
+        # Basic checks completed, graph can now be constructed.
+        self.graph = nx.Graph()
+        self.graph.add_nodes_from(vertex_ids)
+        edge_vertex_id_pairs_enabled = []
+        # for x in enumerate(edge_vertex_id_pairs):
+        for x in range(0, len(edge_vertex_id_pairs)):
+            if edge_enabled[x]:
+                edge_vertex_id_pairs_enabled.append(edge_vertex_id_pairs[x])
+        self.graph.add_edges_from(edge_vertex_id_pairs_enabled)
+        # Check: graph - is fully connected?
+        if not nx.is_connected(self.graph):
+            raise GraphNotFullyConnectedError()
+        # Check: graph - has no cycles?
+        try:
+            nx.find_cycle(self.graph)
+        except nx.NetworkXNoCycle:
+            pass
+        else:
+            # find_alternative_edges()
+            raise GraphCycleError()
+        print("Graph created successfully.")
+
+        self.vertex_ids = vertex_ids
+        self.edge_ids = edge_ids
+        self.edge_vertex_id_pairs = edge_vertex_id_pairs
+        self.edge_enabled = edge_enabled
+        self.source_vertex_id = source_vertex_id
+
+    def find_alternative_edges(self, disabled_edge_id: int) -> List[int]:
+        """
+        Given an enabled edge, do the following analysis:
+            If the edge is going to be disabled,
+                which (currently disabled) edge can be enabled to ensure
+                that the graph is again fully connected and acyclic?
+            Return a list of all alternative edges.
+        If the disabled_edge_id is not a valid edge id, it should raise IDNotFoundError.
+        If the disabled_edge_id is already disabled, it should raise EdgeAlreadyDisabledError.
+        If there are no alternative to make the graph fully connected again,
+          it should return empty list.
+
+        For example, given the following graph:
+        vertex_0 (source) --edge_1(enabled)-- vertex_2 --edge_9(enabled)-- vertex_10
+                 |                               |
+                 |                           edge_7(disabled)
+                 |                               |
+                 -----------edge_3(enabled)-- vertex_4
+                 |                               |
+                 |                           edge_8(disabled)
+                 |                               |
+                 -----------edge_5(enabled)-- vertex_6
+
+        Call find_alternative_edges with disabled_edge_id=1 will return [7]
+        Call find_alternative_edges with disabled_edge_id=3 will return [7, 8]
+        Call find_alternative_edges with disabled_edge_id=5 will return [8]
+        Call find_alternative_edges with disabled_edge_id=9 will return []
+
+        Args:
+            disabled_edge_id: edge id (which is currently enabled) to be disabled
+
+        Returns:
+            A list of alternative edge ids.
+        """
+        pass
