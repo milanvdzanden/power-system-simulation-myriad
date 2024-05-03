@@ -81,8 +81,7 @@ class IDNotUniqueError(Exception):
         """
         Exception.__init__(
             self,
-            "IDNotUniqueError: There are non-unique vertices (if 0)"
-            + "or edges (if 1) in the graph: T" + str(mode)
+            "IDNotUniqueError: There are non-unique vertices (if 0)" + "or edges (if 1) in the graph: T" + str(mode),
         )
 
 
@@ -196,7 +195,7 @@ class GraphProcessor:
         self.graph = nx.Graph()
         self.graph.add_nodes_from(vertex_ids)
         edge_vertex_id_pairs_enabled = []
-        #for x in enumerate(edge_vertex_id_pairs):
+        # for x in enumerate(edge_vertex_id_pairs):
         for x in range(0, len(edge_vertex_id_pairs)):
             if edge_enabled[x]:
                 edge_vertex_id_pairs_enabled.append(edge_vertex_id_pairs[x])

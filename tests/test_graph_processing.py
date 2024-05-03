@@ -23,6 +23,7 @@ def test_graph_generator():
     source_node = leaf_nodes[0]
     return graph, source_node
 
+
 def test_graph_creation():
     # Working graph
     graph, source = test_graph_generator()
@@ -89,14 +90,15 @@ def test_graph_processing():
     edge_enabled = [True, True, True, False, False, True]
     source_vertex_id = 0
     # gp = pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
-    #graph, source = test_graph_generator()
-    #gp = pss.GraphProcessor(
+    # graph, source = test_graph_generator()
+    # gp = pss.GraphProcessor(
     #    list(graph.nodes),
     #    [x for x in range(0, len(list(graph.edges)))],
     #    list(graph.edges),
     #    [True for x in range(0, len(graph.nodes) - 1)],
     #    source,
-    #)
+    # )
+
 
 test_graph_creation()
 test_graph_processing()
