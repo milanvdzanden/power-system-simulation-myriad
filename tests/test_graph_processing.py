@@ -1,12 +1,15 @@
 import os
 import sys
+
 import pytest
 
 src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
 sys.path.append(src_dir)
 
 import networkx as nx
+
 import power_system_simulation.graph_processing as pss
+
 
 # Move later to src if needed
 def test_graph_generator():
@@ -78,7 +81,8 @@ def test_graph_creation():
     t_edge_enabled = [True, True, True, True, True, True]
     with pytest.raises(pss.GraphCycleError):
         pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, t_edge_enabled, source_vertex_id)
-    
+
+
 def test_alternative_edges():
     vertex_ids = [0, 2, 4, 6, 10]
     edge_ids = [1, 3, 5, 7, 8, 9]
@@ -99,5 +103,6 @@ def test_alternative_edges():
     with pytest.raises(pss.EdgeAlreadyDisabledError) as excinfo:
         gp.find_alternative_edges(7)
 
-test_graph_creation()        
+
+test_graph_creation()
 test_alternative_edges()
