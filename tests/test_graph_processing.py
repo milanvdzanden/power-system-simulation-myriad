@@ -23,11 +23,6 @@ def test_graph_generator():
     source_node = leaf_nodes[0]
     return graph, source_node
 
-
-# Requires matplotlib. Does not work in VScode.
-def test_graph_drawer(graph):
-    nx.draw(graph, node_size=10, labels={node: node for node in graph.nodes()})
-
 def test_graph_creation():
     # Working graph
     graph, source = test_graph_generator()
@@ -38,8 +33,6 @@ def test_graph_creation():
         [True for x in range(0, len(graph.edges))],
         source,
     )
-    print( source)
-
 
     # Working graph (cyclic though)
     vertex_ids = [0, 2, 4, 6, 10]
@@ -96,14 +89,14 @@ def test_graph_processing():
     edge_enabled = [True, True, True, False, False, True]
     source_vertex_id = 0
     # gp = pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
-    graph, source = test_graph_generator()
-    gp = pss.GraphProcessor(
-        list(graph.nodes),
-        [x for x in range(0, len(list(graph.edges)))],
-        list(graph.edges),
-        [True for x in range(0, len(graph.nodes) - 1)],
-        source,
-    )
+    #graph, source = test_graph_generator()
+    #gp = pss.GraphProcessor(
+    #    list(graph.nodes),
+    #    [x for x in range(0, len(list(graph.edges)))],
+    #    list(graph.edges),
+    #    [True for x in range(0, len(graph.nodes) - 1)],
+    #    source,
+    #)
 
 test_graph_creation()
 test_graph_processing()
