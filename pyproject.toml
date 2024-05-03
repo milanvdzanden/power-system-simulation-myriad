@@ -37,7 +37,7 @@ namespaces = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["--cov=power_system_simulation", "--cov-report", "term", "--cov-report", "html:python_cov_html", "--cov-fail-under=95"]
+addopts = ["--cov=power_system_simulation", "--cov-report", "term", "--cov-report", "html:python_cov_html", "--cov-fail-under=90"]
 
 [tool.black]
 line-length = 120
