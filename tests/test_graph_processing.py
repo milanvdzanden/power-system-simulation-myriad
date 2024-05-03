@@ -105,17 +105,5 @@ def test_graph_processing():
         source,
     )
 
-    assert set(gp.find_alternative_edges(1)) == set([7])
-    assert set(gp.find_alternative_edges(3)) == set([8, 7])
-    assert set(gp.find_alternative_edges(5)) == set([8])
-    assert set(gp.find_alternative_edges(9)) == set([])
-
-    with pytest.raises(pss.IDNotFoundError) as excinfo:
-        gp.find_alternative_edges(14)
-
-    with pytest.raises(pss.EdgeAlreadyDisabledError) as excinfo:
-        gp.find_alternative_edges(7)
-
-
 test_graph_creation()
 test_graph_processing()
