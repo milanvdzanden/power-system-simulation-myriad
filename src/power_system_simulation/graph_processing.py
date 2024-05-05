@@ -208,6 +208,14 @@ class GraphProcessor:
             if edge_enabled[x]:
                 edge_vertex_id_pairs_enabled.append(edge_vertex_id_pairs[x])
         self.graph.add_edges_from(edge_vertex_id_pairs_enabled)
+        self.graph_all_enabled = nx.Graph()
+        self.graph_all_enabled.add_nodes_from(vertex_ids)
+        self.graph_all_enabled.add_edges_from(edge_vertex_id_pairs)
+        # Check: graph - is fully connected?
+        if not nx.is_connected(self.graph_all_enabled):
+            raise GraphNotFullyConnectedError()
+        # Check: graph - has no cycles?
+        self.graph.add_edges_from(edge_vertex_id_pairs_enabled)
         # Check: graph - is fully connected?
         if not nx.is_connected(self.graph):
             raise GraphNotFullyConnectedError()
@@ -219,7 +227,6 @@ class GraphProcessor:
         else:
             # find_alternative_edges()
             raise GraphCycleError()
-        print("Graph created successfully.")
 
         self.vertex_ids = vertex_ids
         self.edge_ids = edge_ids
