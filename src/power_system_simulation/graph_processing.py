@@ -314,6 +314,7 @@ class GraphProcessor:
                 output_list.append(id_list)
 
         output = output_list[0]
+        return output
     
     def find_alternative_edges(self, disabled_edge_id: int) -> List[int]:
         """
