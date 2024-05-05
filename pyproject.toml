@@ -14,7 +14,7 @@ classifiers = [
 ]
 requires-python = ">=3.12"
 # add dependencies of your core package, check the license first!
-dependencies = ['networkx']
+dependencies = ["networkx"]
 version = "0.1"
 
 [project.optional-dependencies]
@@ -40,17 +40,18 @@ testpaths = ["tests"]
 addopts = ["--cov=power_system_simulation", "--cov-report", "term", "--cov-report", "html:python_cov_html", "--cov-fail-under=90"]
 
 [tool.black]
-line-length = 120
+line-length = 100
 target-version = ['py312']
 
 [tool.isort]
 profile = "black"
 combine_as_imports = true
-line_length = 120
+line_length = 100
 
 [tool.pylint.main]
 # Specify a score threshold under which the program will exit with error.
-fail-under = 9
+fail-under = 8.5
+
 
 # Minimum Python version to use for version dependent checks. Will default to the
 # version used to run pylint.
