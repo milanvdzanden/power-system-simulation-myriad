@@ -270,7 +270,7 @@ class GraphProcessor:
 
         list_of_islands_before = []
 
-        for c in enumerate(nx.connected_components(graph)):
+        for i,c in enumerate(nx.connected_components(graph)):
             list_of_islands_before.append(list(c))
 
         # Step 2 is calculated here
@@ -292,7 +292,7 @@ class GraphProcessor:
 
         list_of_islands_after = []
 
-        for c in enumerate(nx.connected_components(graph)):
+        for i,c in enumerate(nx.connected_components(graph)):
             list_of_islands_after.append(list(c))
 
         output_list = []
