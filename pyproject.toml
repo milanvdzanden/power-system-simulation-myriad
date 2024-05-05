@@ -14,7 +14,7 @@ classifiers = [
 ]
 requires-python = ">=3.12"
 # add dependencies of your core package, check the license first!
-dependencies = ["networkx"]
+dependencies = ['networkx', 'power-grid-model']
 version = "0.1"
 
 [project.optional-dependencies]
@@ -51,7 +51,6 @@ line_length = 100
 [tool.pylint.main]
 # Specify a score threshold under which the program will exit with error.
 fail-under = 8.5
-
 
 # Minimum Python version to use for version dependent checks. Will default to the
 # version used to run pylint.

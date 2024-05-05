@@ -8,8 +8,6 @@ sys.path.append(src_dir)
 import networkx as nx
 import power_system_simulation.graph_processing as pss
 
-
-
 def test_downstream_vertices():
     # edge_id = 10
     vertex_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
@@ -120,7 +118,7 @@ def test_graph_creation():
 
     # Graph not fully connected
     t_vertex_ids = [0, 2, 4, 6, 10, 999]
-    with pytest.raises(pss.GraphNotFullyConnectedError):
+    with pytest.raises(pss.GraphNotFullyConnectedError):    
         pss.GraphProcessor(t_vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
 
     # Cyclic graph
