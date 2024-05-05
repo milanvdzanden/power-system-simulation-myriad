@@ -36,7 +36,9 @@ jobs:
 
     - name: Check the format
       run: |
+        isort .
         isort --check .
+        black .
         black --check .
         pylint power_system_simulation
 
