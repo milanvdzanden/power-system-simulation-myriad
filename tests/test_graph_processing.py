@@ -34,7 +34,7 @@ def test_downstream_vertices():
     with pytest.raises(pss.IDNotFoundError) as excinfo:
         gp.find_downstream_vertices(12)
 
-    # assert set(gp.find_downstream_vertices(1)) == set([6, 7, 9, 10])
+    assert set(gp.find_downstream_vertices(1)) == set([6, 7, 9, 10])
     assert set(gp.find_downstream_vertices(2)) == set([2, 3, 4, 5, 6, 7, 9, 10])
     assert set(gp.find_downstream_vertices(3)) == set([3, 4, 5])
     assert set(gp.find_downstream_vertices(4)) == set([4, 5])
