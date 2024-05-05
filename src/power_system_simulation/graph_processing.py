@@ -1,6 +1,6 @@
 """
-This is a skeleton for the graph processing assignment.
-
+Graph processing file, handling the low level graph calculations
+for finding alternative edges and downstream vertices
 We define a graph processor class with some function skeletons.
 """
 
@@ -85,8 +85,7 @@ class IDNotUniqueError(Exception):
             + "or edges (if 1) in the graph: T"
             + str(mode),
         )
-
-
+        
 class GraphNotFullyConnectedError(Exception):
     """
     Error class for GraphNotFullyConnectedError
@@ -134,7 +133,11 @@ class EdgeAlreadyDisabledError(Exception):
 
 
 class GraphProcessor:
-
+    """
+    General documentation of this class.
+    You need to describe the purpose of this class and the functions in it.
+    We are using an undirected graph in the processor.
+    """
     def __init__(
         self,
         vertex_ids: List[int],
@@ -143,7 +146,81 @@ class GraphProcessor:
         edge_enabled: List[bool],
         source_vertex_id: int,
     ) -> None:
-        # put your implementation here
+
+        """
+        Initialize a graph processor object with an undirected graph.
+        Only the edges which are enabled are taken into account.
+        Check if the input is valid and raise exceptions if not.
+        The following conditions should be checked:
+            (IDNotUniqueError)
+            1. vertex_ids and edge_ids should be unique.
+            (InputLengthDoesNotMatchError)
+            2. edge_vertex_id_pairs should have the same length as edge_ids.
+            (IDNotFoundError)
+            3. edge_vertex_id_pairs should contain valid vertex ids.
+            (InputLengthDoesNotMatchError)
+            4. edge_enabled should have the same length as edge_ids.
+            (IDNotFoundError)
+            5. source_vertex_id should be a valid vertex id.
+            (GraphNotFullyConnectedError)
+            6. The graph should be fully connected.
+            (GraphCycleError)
+            7. The graph should not contain cycles.
+        If one certain condition is not satisfied, the error
+        in the parentheses should be raised.
+
+        Args:
+            vertex_ids: list of vertex ids
+            edge_ids: liest of edge ids
+            edge_vertex_id_pairs: list of tuples of two integer
+                Each tuple is a vertex id pair of the edge.
+            edge_enabled: list of bools indicating of an edge is enabled or not
+            source_vertex_id: vertex id of the source in the graph
+        """
+        # Check: vertex_ids - is unique?
+        if not len(vertex_ids) == len(set(vertex_ids)):
+            raise IDNotUniqueError(0)
+        # Check: edge_ids - is unique?
+        if not len(edge_ids) == len(set(edge_ids)):
+            raise IDNotUniqueError(1)
+
+        # Check: edge_enabled and edge_ids - are same length?
+        if not len(edge_enabled) == len(edge_ids):
+            raise InputLengthDoesNotMatchError(0, len(edge_enabled), len(edge_ids))
+        # Check: edge_vertex_id_pairs and edge_ids - are same length?
+        if not len(edge_vertex_id_pairs) == len(edge_ids):
+            raise InputLengthDoesNotMatchError(1, len(edge_vertex_id_pairs), len(edge_ids))
+
+        # Check: edge_vertex_id_pairs - are vertex ids valid?
+        for x in edge_vertex_id_pairs:
+            if (x[0] not in vertex_ids) or (x[1] not in vertex_ids):
+                raise IDNotFoundError(0)
+        # Check: source_vertex_id - is source vortex id valid?
+        if source_vertex_id not in vertex_ids:
+            raise IDNotFoundError(1)
+
+        # Basic checks completed, graph can now be constructed.
+        self.graph = nx.Graph()
+        self.graph.add_nodes_from(vertex_ids)
+        edge_vertex_id_pairs_enabled = []
+        # for x in enumerate(edge_vertex_id_pairs):
+        for x in range(0, len(edge_vertex_id_pairs)):
+            if edge_enabled[x]:
+                edge_vertex_id_pairs_enabled.append(edge_vertex_id_pairs[x])
+        self.graph.add_edges_from(edge_vertex_id_pairs_enabled)
+        # Check: graph - is fully connected?
+        if not nx.is_connected(self.graph):
+            raise GraphNotFullyConnectedError()
+        # Check: graph - has no cycles?
+        try:
+            nx.find_cycle(self.graph)
+        except nx.NetworkXNoCycle:
+            pass
+        else:
+            # find_alternative_edges()
+            raise GraphCycleError()
+        print("Graph created successfully.")
+
         self.vertex_ids = vertex_ids
         self.edge_ids = edge_ids
         self.edge_vertex_id_pairs = edge_vertex_id_pairs
@@ -235,4 +312,92 @@ class GraphProcessor:
                 output_list.append(id_list)
 
         output = output_list[0]
+    
+    def find_alternative_edges(self, disabled_edge_id: int) -> List[int]:
+        """
+        Given an enabled edge, do the following analysis:
+            If the edge is going to be disabled,
+                which (currently disabled) edge can be enabled to ensure
+                that the graph is again fully connected and acyclic?
+            Return a list of all alternative edges.
+        If the disabled_edge_id is not a valid edge id, it should raise IDNotFoundError.
+        If the disabled_edge_id is already disabled, it should raise EdgeAlreadyDisabledError.
+        If there are no alternative to make the graph fully connected again,
+        it should return empty list.
+
+        For example, given the following graph:
+        vertex_0 (source) --edge_1(enabled)-- vertex_2 --edge_9(enabled)-- vertex_10
+                 |                               |
+                 |                           edge_7(disabled)
+                 |                               |
+                 -----------edge_3(enabled)-- vertex_4
+                 |                               |
+                 |                           edge_8(disabled)
+                 |                               |
+                 -----------edge_5(enabled)-- vertex_6
+
+        Call find_alternative_edges with disabled_edge_id=1 will return [7]
+        Call find_alternative_edges with disabled_edge_id=3 will return [7, 8]
+        Call find_alternative_edges with disabled_edge_id=5 will return [8]
+        Call find_alternative_edges with disabled_edge_id=9 will return []
+
+        Args:
+            disabled_edge_id: edge id (which is currently enabled) to be disabled
+
+        Returns:
+            A list of alternative edge ids.
+        """
+        # Ouput variable list
+        output = []
+
+        # Check if disabled_edge_id exists
+        if disabled_edge_id not in self.edge_ids:
+            raise IDNotFoundError(0)
+
+        # Check if the edge is already disabled with and index
+        edge_index = self.edge_ids.index(disabled_edge_id)
+
+        # Check if disabled_edge_id is already disabled
+        if not self.edge_enabled[edge_index]:
+            raise EdgeAlreadyDisabledError(1)
+
+        # Loop through all disabled edges
+        # Enable that edge temporarily and check if it is again fully connected
+        # Check if it is still non-circular
+        # If all of this passed, the edge is an alternative edge
+
+        # Loop through ALL edges (both enabled and disabled)
+        for edge in self.edge_ids:
+            current_edge_index = self.edge_ids.index(edge)
+
+            # Check if the edge is disabled, if so, continue
+            if self.edge_enabled[current_edge_index] is False:
+
+                # Variable for temporary Edge disabling and then enable the edge
+                # in question (for the example above: edge ID 7 or 8)
+                temp_edge_enabled = self.edge_enabled.copy()
+                temp_edge_enabled[current_edge_index] = True
+
+                # List for storing all enabled edges,
+                # to use for finding out if the graph is fully connected
+                edge_vertex_id_pairs_enabled = []
+
+                # For loop for finding all enabled edges
+                for edge_to_check in self.edge_vertex_id_pairs:
+                    edge_to_check_index = self.edge_vertex_id_pairs.index(edge_to_check)
+
+                    # Leave out the input edge, since that one will be disabled
+                    if temp_edge_enabled[edge_to_check_index] and edge_to_check_index != edge_index:
+                        edge_vertex_id_pairs_enabled.append(edge_to_check)
+
+                # Check for fully connected-ness
+                networkx_graph = nx.Graph()
+                networkx_graph.add_nodes_from(self.vertex_ids)
+                networkx_graph.add_edges_from(edge_vertex_id_pairs_enabled)
+                if nx.is_connected(networkx_graph):
+                    try:
+                        nx.find_cycle(networkx_graph)
+                    except nx.NetworkXNoCycle:
+                        output.append(edge)
+
         return output
