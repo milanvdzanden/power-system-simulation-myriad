@@ -277,7 +277,7 @@ class GraphProcessor:
         # For loop for finding all enabled edges without the input edge
         edge_vertex_id_pairs_enabled_after = []
         edge_ids_enabled_after = []  # The list with the input edge removed
-        for edge_index in enumerate(edge_ids_enabled_before):
+        for edge_index in range(len(edge_ids_enabled_before)):
             if edge_ids_enabled_before[edge_index] != edge_id:
                 edge_ids_enabled_after.append(edge_ids_enabled_before[edge_index])
                 edge_vertex_id_pairs_enabled_after.append(
