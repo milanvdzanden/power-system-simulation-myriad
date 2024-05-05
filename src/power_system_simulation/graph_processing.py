@@ -215,11 +215,6 @@ class GraphProcessor:
         if not nx.is_connected(self.graph_all_enabled):
             raise GraphNotFullyConnectedError()
         # Check: graph - has no cycles?
-        self.graph.add_edges_from(edge_vertex_id_pairs_enabled)
-        # Check: graph - is fully connected?
-        if not nx.is_connected(self.graph):
-            raise GraphNotFullyConnectedError()
-        # Check: graph - has no cycles?
         try:
             nx.find_cycle(self.graph)
         except nx.NetworkXNoCycle:
