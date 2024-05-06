@@ -13,6 +13,7 @@ with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
 import pandas as pd
 import power_grid_model as pgm
 from power_grid_model.utils import json_deserialize, json_serialize
+from power_grid_model.validation import ValidationException
 
 # ValidationError: included in package
 
@@ -47,6 +48,18 @@ class PgmProcessor:
         if not self.active_load_profile.equals(self.reactive_load_profile):
             raise ProfilesDontMatchError("Timestamps and load ids in active and reactive profiles do not match.")
         
+        pass
+    
+    def construct_pgm(self):
+        """
+            Construct the PGM using the input data
+            Raises:
+            - ValidationException error if input data in invalid
+        """
+        try:
+            self.pgm = pgm.construct_pgm(self.pgm_input, self.active_load_profile, self.reactive_load_profile)
+        except pgm.validation.assert_valid_input_data(self.pgm):
+            raise ValidationException
         pass
 
     def create_update_model(self):
