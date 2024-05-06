@@ -1,15 +1,22 @@
 """
 Implementation of a power grid simulation and calculation module using the power-grid-model package as the core. Additional functions are included to display the data. 
 """
-
-import pandas as pd
-import power_grid_model as pgm
-
 import json
 import pprint
 import warnings
 
+with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+    # suppress warning about pyarrow as future required dependency
+    from pandas import DataFrame
+    
+import pandas as pd
+import power_grid_model as pgm
+from power_grid_model.utils import json_deserialize, json_serialize
+
 # ValidationError: included in package
+
+
+
 
 class ProfilesDontMatchError(Exception):
     pass
@@ -25,8 +32,14 @@ class PgmProcessor:
         You will need to de-serialize the .json input for the input_network_data file (https://power-grid-model.readthedocs.io/en/stable/examples/Serialization%20Example.html)
         Store the data in the self.[...] variables, since then the later functions can access these parameters directly from the class (no need to pass args)
         """
-        #f = open(dir_network_json, "r")
-        #print(f.read())
+        with open(dir_network_json) as fp:
+            data = fp.read()
+        # pprint.pprint(json.loads(data))
+        dataset = json_deserialize(data)
+
+        # print("components:", dataset.keys())
+        # f = open(dir_network_json, "r")
+        # print(f.read())
         pass
 
     def create_update_model(self):
