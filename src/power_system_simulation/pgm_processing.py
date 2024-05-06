@@ -40,6 +40,10 @@ class PgmProcessor:
         # print("components:", dataset.keys())
         # f = open(dir_network_json, "r")
         # print(f.read())
+        
+        # Read active and reactive load profile from parquet file
+        self.active_load_profile = pd.read_parquet(dir_active_profile)
+        self.reactive_load_profile = pd.read_parquet(dir_reactive_profile)
         pass
 
     def create_update_model(self):
