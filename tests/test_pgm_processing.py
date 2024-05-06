@@ -15,7 +15,7 @@ def test_pgm_processing():
     dir_reactive_profile = src_dir + "/reactive_power_profile.parquet"
 
     p = pgm_p.PgmProcessor(dir_network_json, dir_active_profile, dir_reactive_profile)
-
+    p.create_update_model()
     # Process p here and get output data tables
 
 test_pgm_processing()

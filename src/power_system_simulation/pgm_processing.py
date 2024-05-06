@@ -4,6 +4,7 @@ Implementation of a power grid simulation and calculation module using the power
 import json
 import pprint
 import warnings
+import pyarrow
 
 with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
     # suppress warning about pyarrow as future required dependency
@@ -14,9 +15,6 @@ import power_grid_model as pgm
 from power_grid_model.utils import json_deserialize, json_serialize
 
 # ValidationError: included in package
-
-
-
 
 class ProfilesDontMatchError(Exception):
     pass
@@ -34,13 +32,8 @@ class PgmProcessor:
         """
         with open(dir_network_json) as fp:
             data = fp.read()
-        # pprint.pprint(json.loads(data))
         dataset = json_deserialize(data)
-
-        # print("components:", dataset.keys())
-        # f = open(dir_network_json, "r")
-        # print(f.read())
-        
+        self.pgm_input = dataset
         # Read active and reactive load profile from parquet file
         self.active_load_profile = pd.read_parquet(dir_active_profile)
         self.reactive_load_profile = pd.read_parquet(dir_reactive_profile)
@@ -54,7 +47,13 @@ class PgmProcessor:
         Alternatively, it may be also needed that for the batch, you need to "update" on each timestamp. In that case, this function could be made private
         and called between each calculation of the power flow.
         Store results in a self.[...] variable        
-        """        
+        """   
+        print(self.pgm_input["node"])  
+        print(self.pgm_input["line"]) 
+        print(self.pgm_input["sym_load"])   
+        print(self.pgm_input["source"])  
+        print(self.active_load_profile) 
+        print(self.reactive_load_profile)
         pass
 
     def run_batch_process(self):
@@ -70,5 +69,5 @@ class PgmProcessor:
         Output is a 2-element list of data frames for the 2 required aggregated tables
         """        
         pass
-
+        
 
