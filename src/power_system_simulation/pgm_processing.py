@@ -34,9 +34,19 @@ class PgmProcessor:
             data = fp.read()
         dataset = json_deserialize(data)
         self.pgm_input = dataset
+        
         # Read active and reactive load profile from parquet file
         self.active_load_profile = pd.read_parquet(dir_active_profile)
         self.reactive_load_profile = pd.read_parquet(dir_reactive_profile)
+        
+        # Check if rows and colums of active and reactive profiles match
+        if self.active_load_profile.shape != self.reactive_load_profile.shape:
+            raise ProfilesDontMatchError("Number of rows and columns in active and reactive profiles do not match.")
+        
+        # Check if load ids and timestamps of active and reactive profiles match
+        if not self.active_load_profile.equals(self.reactive_load_profile):
+            raise ProfilesDontMatchError("Timestamps and load ids in active and reactive profiles do not match.")
+        
         pass
 
     def create_update_model(self):
