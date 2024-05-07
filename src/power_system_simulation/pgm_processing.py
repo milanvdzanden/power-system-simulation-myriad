@@ -71,12 +71,14 @@ class PgmProcessor:
         and called between each calculation of the power flow.
         Store results in a self.[...] variable        
         """   
-        print(self.pgm_input["node"])  
-        print(self.pgm_input["line"]) 
-        print(self.pgm_input["sym_load"])   
-        print(self.pgm_input["source"])  
-        print(self.active_load_profile) 
+        # print(self.pgm_input["node"][1])  
+        # print(self.pgm_input["line"]) 
+        # print(self.pgm_input["sym_load"])   
+        # print(self.pgm_input["source"])  
+        print(self.active_load_profile)
         print(self.reactive_load_profile)
+        # print(self.active_load_profile.iloc[[0],[0]])
+        print(self.active_load_profile.loc[:, 8])
         pass
 
     def run_batch_process(self):
