@@ -46,7 +46,7 @@ class PgmProcessor:
             - ValidationException error if input data in invalid
         """
         try:
-            self.pgm = pgm.construct_pgm(self.pgm_input, self.active_load_profile, self.reactive_load_profile)
+            self.pgm = pgm.PowerGridModel(self.pgm_input)
         except pgm.validation.assert_valid_input_data(self.pgm):
             raise ValidationException
         
