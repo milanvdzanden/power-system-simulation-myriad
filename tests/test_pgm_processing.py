@@ -16,6 +16,8 @@ def test_pgm_processing():
 
     p = pgm_p.PgmProcessor(dir_network_json, dir_active_profile, dir_reactive_profile)
     p.create_update_model()
+    p.run_batch_process()
+    p.test_see_output(src_dir + "/output_table_row_per_line.parquet");
     # Process p here and get output data tables
 
 test_pgm_processing()
