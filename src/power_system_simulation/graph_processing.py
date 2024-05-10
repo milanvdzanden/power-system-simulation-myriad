@@ -180,6 +180,7 @@ class GraphProcessor:
         # Check: vertex_ids - is unique?
         if not len(vertex_ids) == len(set(vertex_ids)):
             raise IDNotUniqueError(0)
+        
         # Check: edge_ids - is unique?
         if not len(edge_ids) == len(set(edge_ids)):
             raise IDNotUniqueError(1)
@@ -187,6 +188,7 @@ class GraphProcessor:
         # Check: edge_enabled and edge_ids - are same length?
         if not len(edge_enabled) == len(edge_ids):
             raise InputLengthDoesNotMatchError(0, len(edge_enabled), len(edge_ids))
+        
         # Check: edge_vertex_id_pairs and edge_ids - are same length?
         if not len(edge_vertex_id_pairs) == len(edge_ids):
             raise InputLengthDoesNotMatchError(1, len(edge_vertex_id_pairs), len(edge_ids))
@@ -195,32 +197,38 @@ class GraphProcessor:
         for x in edge_vertex_id_pairs:
             if (x[0] not in vertex_ids) or (x[1] not in vertex_ids):
                 raise IDNotFoundError(0)
+            
         # Check: source_vertex_id - is source vortex id valid?
         if source_vertex_id not in vertex_ids:
             raise IDNotFoundError(1)
 
         # Basic checks completed, graph can now be constructed.
-        self.graph = nx.Graph()
-        self.graph.add_nodes_from(vertex_ids)
+        self.graph_enabled_edges = nx.Graph()
+        self.graph_enabled_edges_ids = [];
+        self.graph_enabled_edges.add_nodes_from(vertex_ids)
         edge_vertex_id_pairs_enabled = []
-        # for x in enumerate(edge_vertex_id_pairs):
+        
+        # Find the list of enabled edges
         for x in range(0, len(edge_vertex_id_pairs)):
             if edge_enabled[x]:
+                self.graph_enabled_edges_ids.append(edge_ids[x])
                 edge_vertex_id_pairs_enabled.append(edge_vertex_id_pairs[x])
-        self.graph.add_edges_from(edge_vertex_id_pairs_enabled)
-        self.graph_all_enabled = nx.Graph()
-        self.graph_all_enabled.add_nodes_from(vertex_ids)
-        self.graph_all_enabled.add_edges_from(edge_vertex_id_pairs)
+                
+        self.graph_enabled_edges.add_edges_from(edge_vertex_id_pairs_enabled)
+        self.graph_all_edges = nx.Graph()
+        self.graph_all_edges.add_nodes_from(vertex_ids)
+        self.graph_all_edges.add_edges_from(edge_vertex_id_pairs)
+        
         # Check: graph - is fully connected?
-        if not nx.is_connected(self.graph_all_enabled):
+        if not nx.is_connected(self.graph_all_edges):
             raise GraphNotFullyConnectedError()
+        
         # Check: graph - has no cycles?
         try:
-            nx.find_cycle(self.graph)
+            nx.find_cycle(self.graph_enabled_edges)
         except nx.NetworkXNoCycle:
             pass
         else:
-            # find_alternative_edges()
             raise GraphCycleError()
 
         self.vertex_ids = vertex_ids

@@ -18,6 +18,7 @@ from power_grid_model.validation import ValidationException
 #from power_grid_model.validation import *
 from power_grid_model import *
 
+from scipy import integrate
 # ValidationError: included in package
 
 class ProfilesDontMatchError(Exception):
@@ -103,7 +104,6 @@ class PgmProcessor:
         #if not self.active_load_profile.equals(self.reactive_load_profile):
         #    raise ProfilesDontMatchError("Timestamps and load ids in active and reactive profiles do not match.")
         """
-
         # Check if time series of both active and reactive profile match
         if not self.active_load_profile.index.equals(self.reactive_load_profile.index):
             raise ProfilesDontMatchError(0)
@@ -118,7 +118,7 @@ class PgmProcessor:
         
         # Validated, take any
         self.update_index_length = self.active_load_profile.index.shape[0] 
-        self.update_ids = self.active_load_profile.columns.to_numpy()
+        self.update_ids = self.active_load_profile.columns.to_numpy() 
 
         self.update_load_profile = pgm.initialize_array("update", "sym_load", (self.update_index_length, self.update_ids.shape[0]))
         self.update_load_profile["id"] = self.update_ids
@@ -135,18 +135,82 @@ class PgmProcessor:
         Store results in a self.[...] variable
         """        
         self.output_data = self.pgm_model.calculate_power_flow(update_data=self.time_series_mutation)
-        #print(pd.DataFrame(self.output_data["line"][0]))
 
     def get_aggregate_results(self) -> list[pd.DataFrame, pd.DataFrame]:
         """
         Generate the two required output tables based on the self variables created in run_batch_process
         Output is a 2-element list of data frames for the 2 required aggregated tables
         """        
-        pass
+        # Make a list of all timestamps for later use
+        list_of_timestamps = self.active_load_profile.index.strftime('%Y-%m-%d %H:%M:%S').to_list()
+        
+        # Output dataframe for the first required table 
+        df_min_max_nodes = pd.DataFrame()
+        
+        # Loop through all timestamps, and pick the nodes with minimum and maximum voltage 
+        for index, snapshot in enumerate(self.output_data['node']):
+            
+            # Temporary dataframe which contains the timestamp snapshot data
+            df = pd.DataFrame(snapshot)
+            
+            # Find the index of the row with the minimum and maximum value in the 'u_pu' column
+            max_index = df['u_pu'].idxmax()
+            min_index = df['u_pu'].idxmin()
+
+            # Retrieve the row with the minimum and maximum value in the 'u_pu' column
+            max_row = df.loc[max_index]
+            min_row = df.loc[min_index]
+            
+            # Put the data in the correct rows, and columns
+            df_min_max_nodes.loc[list_of_timestamps[index], 'id_max'] = max_row['id']
+            df_min_max_nodes.loc[list_of_timestamps[index], 'u_pu_max'] = max_row['u_pu']
+            df_min_max_nodes.loc[list_of_timestamps[index], 'id_min'] = min_row['id']
+            df_min_max_nodes.loc[list_of_timestamps[index], 'u_pu_min'] = min_row['u_pu']
+
+        print(df_min_max_nodes)
+                  
+        flattened_list = [tuple for sublist in self.output_data['line'] for tuple in sublist]
+        data = [{'id': tpl[0], 'energized': tpl[1], 'loading': tpl[2], 'p_from': tpl[3], 'p_to': tpl[7]} for tpl in flattened_list]
+        
+        # Output dataframe for the second required output table
+        df_line_loss = pd.DataFrame()
+        
+        df = pd.DataFrame(data)
+        
+        N_nodes = df['id'].nunique()
+        repeated_list_of_timestamps = [elem for elem in list_of_timestamps for _ in range(N_nodes)]
+        
+        df['Timestamp'] = repeated_list_of_timestamps
+        grouped_by_line = df.groupby('id')
+        
+        for id, line in grouped_by_line:
+            print(line)
+            
+            line['p_loss'] = abs(abs(line['p_from']) - abs(line['p_to']))
+            
+            # Calculate the area under the power loss curve
+            energy_loss = integrate.trapezoid(line['p_loss'].to_list()) / 1000
+            
+            # Find the index of the row with the minimum and maximum value in the 'u_pu' column
+            max_index = line['loading'].idxmax()
+            min_index = line['loading'].idxmin()
+
+            # Retrieve the row with the minimum and maximum value in the 'u_pu' column
+            max_row = line.loc[max_index]
+            min_row = line.loc[min_index]
+            
+            # Put the data in the correct rows, and columns
+            df_line_loss.loc[id, 'energy_loss'] = energy_loss
+            df_line_loss.loc[id, 'timestamp_max'] = max_row['Timestamp']
+            df_line_loss.loc[id, 'max_loading'] = max_row['loading']
+            df_line_loss.loc[id, 'timestamp_min'] = min_row['Timestamp']
+            df_line_loss.loc[id, 'min_loading'] = min_row['loading']
+
+        print(df_line_loss)
 
     def test_see_output(self, dir):
-        self.test = pd.read_parquet(dir)
-        print(self.test)
+        # self.test = pd.read_parquet(dir)
+        # print(self.test)
         pass
         
 
