@@ -169,6 +169,7 @@ class PgmProcessor:
 
         print(df_min_max_nodes)
                   
+        flattened_list = [tuple for sublist in self.output_data['line'] for tuple in sublist]
         data = [{'id': tpl[0], 'energized': tpl[1], 'loading': tpl[2], 'p_from': tpl[3], 'p_to': tpl[7]} for tpl in flattened_list]
         
         # Output dataframe for the second required output table
@@ -176,10 +177,14 @@ class PgmProcessor:
         
         df = pd.DataFrame(data)
         
+        # Number of unique lines
         N_nodes = df['id'].nunique()
         repeated_list_of_timestamps = [elem for elem in list_of_timestamps for _ in range(N_nodes)]
         
+        # Add timestamp column to dataframe
         df['Timestamp'] = repeated_list_of_timestamps
+        
+        # Group data by each line and then loop over each dataframe 'group'
         grouped_by_line = df.groupby('id')
         
         for id, line in grouped_by_line:
