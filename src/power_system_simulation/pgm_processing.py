@@ -124,8 +124,10 @@ class PgmProcessor:
         self.update_load_profile["id"] = self.update_ids
         self.update_load_profile["p_specified"] = self.active_load_profile
         self.update_load_profile["q_specified"] = self.reactive_load_profile
-        #print(self.update_load_profile)
-
+        self.update_load_profile["status"] = 1
+        
+        print(self.update_load_profile)
+        
         self.time_series_mutation = {"sym_load": self.update_load_profile}
         pgm.validation.assert_valid_batch_data(input_data=self.pgm_input, update_data=self.time_series_mutation, calculation_type=pgm.CalculationType.power_flow)
 
@@ -134,7 +136,7 @@ class PgmProcessor:
         Run the batch process on the input data according to the load update profile.
         Store results in a self.[...] variable
         """        
-        self.output_data = self.pgm_model.calculate_power_flow(update_data=self.time_series_mutation)
+        self.output_data = self.pgm_model.calculate_power_flow(update_data=self.time_series_mutation, calculation_method=CalculationMethod.newton_raphson)
 
     def get_aggregate_results(self) -> list[pd.DataFrame, pd.DataFrame]:
         """
