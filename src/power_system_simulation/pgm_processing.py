@@ -113,7 +113,7 @@ class PgmProcessor:
             raise ProfilesDontMatchError(1)
 
         # Check if node IDs in both profiles match the node IDs in the PGM JSON input descriptor
-        if not np.array_equal(pd.DataFrame(self.pgm_input["sym_load"]).loc[:, "id"].to_numpy(), self.active_load_profile.columns.to_numpy()) or not np.array_equal(pd.DataFrame(self.pgm_input["sym_load"]).loc[:, "id"].to_numpy(), self.reactive_load_profile.columns.to_numpy()):
+        if not np.array_equal(pd.DataFrame(self.pgm_input["sym_load"]).loc[:, "id"].to_numpy(), self.active_load_profile.columns.to_numpy()):
             raise ProfilesDontMatchError(2)
         
         # Validated, take any
@@ -125,8 +125,6 @@ class PgmProcessor:
         self.update_load_profile["p_specified"] = self.active_load_profile
         self.update_load_profile["q_specified"] = self.reactive_load_profile
         self.update_load_profile["status"] = 1
-        
-        print(self.update_load_profile)
         
         self.time_series_mutation = {"sym_load": self.update_load_profile}
         pgm.validation.assert_valid_batch_data(input_data=self.pgm_input, update_data=self.time_series_mutation, calculation_type=pgm.CalculationType.power_flow)
@@ -143,6 +141,9 @@ class PgmProcessor:
         Generate the two required output tables based on the self variables created in run_batch_process
         Output is a 2-element list of data frames for the 2 required aggregated tables
         """        
+        # Initialize output variable
+        aggregate_results = [None, None]
+        
         # Make a list of all timestamps for later use
         list_of_timestamps = self.active_load_profile.index.strftime('%Y-%m-%d %H:%M:%S').to_list()
         
@@ -169,8 +170,9 @@ class PgmProcessor:
             df_min_max_nodes.loc[list_of_timestamps[index], 'id_min'] = min_row['id']
             df_min_max_nodes.loc[list_of_timestamps[index], 'u_pu_min'] = min_row['u_pu']
 
-        print(df_min_max_nodes)
-                  
+        aggregate_results[0] = df_min_max_nodes
+        
+        # Make a list with all the timestamp snapshots, of all the lines to be used to find the absolute max and min
         flattened_list = [tuple for sublist in self.output_data['line'] for tuple in sublist]
         data = [{'id': tpl[0], 'energized': tpl[1], 'loading': tpl[2], 'p_from': tpl[3], 'p_to': tpl[7]} for tpl in flattened_list]
         
@@ -190,8 +192,6 @@ class PgmProcessor:
         grouped_by_line = df.groupby('id')
         
         for id, line in grouped_by_line:
-            print(line)
-            
             line['p_loss'] = abs(abs(line['p_from']) - abs(line['p_to']))
             
             # Calculate the area under the power loss curve
@@ -212,7 +212,9 @@ class PgmProcessor:
             df_line_loss.loc[id, 'timestamp_min'] = min_row['Timestamp']
             df_line_loss.loc[id, 'min_loading'] = min_row['loading']
 
-        print(df_line_loss)
+        aggregate_results[1] = df_line_loss
+        
+        return aggregate_results
 
     def test_see_output(self, dir):
         # self.test = pd.read_parquet(dir)
