@@ -84,18 +84,8 @@ class LV_grid:
         self.pgm_model = pgm.PowerGridModel(self.pgm_input)
         
         """
-        The following validity checks need to be ran:
-        
-        - The LV grid should be a valid PGM input data.
-        - The LV grid has exactly one transformer, and one source.
-        - All IDs in the LV Feeder IDs are valid line IDs.
-        - All the lines in the LV Feeder IDs have the from_node the same as the to_node of the transformer.
-        - The grid is fully connected in the initial state.
-        - The grid has no cycles in the initial state.
-        - The timestamps are matching between the active load profile, reactive load profile, and EV charging profile.
-        - The IDs in active load profile and reactive load profile are matching.
-        - The IDs in active load profile and reactive load profile are valid IDs of sym_load.
-        - The number of EV charging profile is at least the same as the number of sym_load.
+        Validity checks need to be made to ensure that there is no overlap or mismatching between the relevant IDs and profiles. Read 'input validity check' in assignment 3 for the specific checks.
+        also raise or passthrough relevant errors.
         """
         
         
@@ -109,11 +99,9 @@ class LV_grid:
         """
         Optimize the tap position of the transformer in the LV grid.
         Run a one time power flow calculation on every possible tap postition for every timestamp (https://power-grid-model.readthedocs.io/en/stable/examples/Transformer%20Examples.html).
-        The most opmtimized tap position has:
-           - The minimal total energy loss of all the lines and the whole time period.
-           - The minimal Delta p.u. averaged across all the nodes with respect to 1 p.u.
-        (We think that total energy loss has more imprtance than the Delta p.u.)
-        The user can choose the criterea for optimization, so thye can choose how low the energy_loss and voltage_deviation should be for it to be valid.
+        The most opmtimized tap position should have the min total energy loss of all lines and whole period and min. deviation of p.u. node voltages w.r.t. 1 p.u.
+        (We think that total energy loss has more importance than the Delta p.u.)
+        The user can choose the criteria for optimization, so thye can choose how low the energy_loss and voltage_deviation should be for it to be valid.
     
         Args:
             optimization_criteria (str): Criteria for optimization (e.g., 'energy_loss', 'voltage_deviation').
@@ -126,12 +114,16 @@ class LV_grid:
         
         """
         Randomly adding EV charging profiles according to a couple criterea using the input 'penetration_level'.
+        
         First: The number of EVs per LV feeder needs to be equal to 'round_down[penetration_level * total_houses / number_of_feeders]'
         To our understanding, an EV feeder is just a branch. This means that the list of feeder IDs contains all line IDs of every start of a branch.
+        
         Second: Use Assignment 1 to see which house is in which branch/feeder.
-                    Then within each feeder randomly select houses whih will have an EV charger. Don't forget the number of EVs per LV feeder.
+        Then within each feeder randomly select houses whih will have an EV charger. Don't forget the number of EVs per LV feeder.
+                    
         Third: For each selected house with EV, randomly select an EV charging profile to add to the sym_load of that house.
-                    Every profile can not be used twice -> there will be enough profiles to cover all of sym_load.
+        Every profile can not be used twice -> there will be enough profiles to cover all of sym_load.
+                    
         Last: Get the two aggregation tables using Assignment 2 and return these.
 
         Args:
@@ -147,17 +139,10 @@ class LV_grid:
         
         """
         One line will be disconnected -> generate alternative grid topoligy.
-        Check if the given Line_ID is valid, if not raise error.
-        Check if the given Line_ID is connected at both sides, if not raise error.
+        Check and raise the relevant errors.
         Find a list of IDs that are now disconnected, but can be connected to make the grid fully connected. (Literally find_alternative_edges from Assignment 1).
         Run the time-series power flow calculation for the whole time period for every alternative connected line. (https://power-grid-model.readthedocs.io/en/stable/examples/Transformer%20Examples.html)
-        Return a table with the results witht he following columns:
-            - The alternative Line ID to be connected
-            - The maximum loading among of lines and timestamps
-            - The Line ID of this maximum
-            - The timestamp of this maximum
-        Every row of this table is a scenario with a different alternative line connected.
-        
+        Return a table to summarize the results with the relevant columns stated in the assignment (Every row of this table is a scenario with a different alternative line connected.)
         If there are no alternatives, it should return an emtpy table with the correct format and titles in the columns and rows.
 
         Args:
