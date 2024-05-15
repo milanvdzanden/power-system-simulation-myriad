@@ -39,7 +39,7 @@ class LV_Feeder_error(Exception):
             0 if the IDs are not valid
             1 if from_node is not the same node as to_node
         """    
-
+pass
 class Load_profile_error(Exception):
     
     """
@@ -57,7 +57,7 @@ class Load_profile_error(Exception):
             1 if the node ids do not match each other in the profiles.
             2 if the IDs in the profiles are not valid IDs of sym_load.
         """
-
+pass
 
 class LV_grid:
 
@@ -102,7 +102,7 @@ class LV_grid:
         """
         NOTE: the funtionalities are independent from each other. For example, for optimal tap position analysis, you need to analyse the original grid with house profile, WITHOUT the EV profile.
         """
-
+        pass
 
     def optimal_tap_position(self,optimization_criteri: str): 
         
@@ -121,7 +121,7 @@ class LV_grid:
         Returns:
             tuple: Optimal tap position and corresponding performance metrics.
         """
-    
+        pass
     def EV_penetration_level(self,penetration_level : float): 
         
         """
@@ -138,10 +138,11 @@ class LV_grid:
             penetration_level (float): Percentage of houses with an Electric Vehicle (EV) charger. -> user input
 
         Returns:
-            Two ggregation tables using Assignment 2.
+            Two aggregation tables using Assignment 2.
             
         NOTE: The EV charging profile does not have sym_load IDs in the column header. They are just sequence numbers of the pool. Assigning the EV profiles to sym_load is part of the assignment tasks.
         """
+        pass
     def N_1_calculation(self,line_id):
         
         """
@@ -165,4 +166,4 @@ class LV_grid:
         Returns:
             Table with results of every scenario with a different alternative line connected.
         """
-        
+        pass    
