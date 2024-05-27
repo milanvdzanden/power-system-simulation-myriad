@@ -2,7 +2,7 @@ import os
 import sys
 import pytest
 
-src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tests/tests_data"))
+src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tests/tests_data/A2"))
 sys.path.append(src_dir)
 src_dir = src_dir.replace("\\", "/")
 

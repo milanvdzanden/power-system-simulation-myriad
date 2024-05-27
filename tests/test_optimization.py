@@ -2,18 +2,20 @@ import os
 import sys
 import pytest
 
-src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tests/tests_data"))
+src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tests/tests_data/A3"))
 sys.path.append(src_dir)
 src_dir = src_dir.replace("\\", "/")
 
 import networkx as nx
-import power_system_simulation.pgm_processing as pgm_p
+import power_system_simulation.optimization as psso
 
 
 def test_optimization():
-    dir_meta_data_json = src_dir + "/input_meta_data.json"
+    dir_meta_data_json = src_dir + "/meta_data.json"
+    dir_network_json = src_dir + "/input_network_data.json"
     dir_active_profile = src_dir + "/active_power_profile.parquet"
     dir_reactive_profile = src_dir + "/reactive_power_profile.parquet"
+    dir_ev_active_profile = src_dir + "/ev_active_power_profile.parquet"
     
     """
     Insert here the file that will be given. (not available yet)
@@ -36,8 +38,10 @@ def test_optimization():
     
     """
     
+    p = psso.LV_grid(dir_network_json, dir_active_profile, dir_reactive_profile, dir_ev_active_profile, dir_meta_data_json)
+    p.N_1_calculation(1)
 
-    
+test_optimization()    
     
     
     

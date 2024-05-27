@@ -65,23 +65,29 @@ class LV_grid:
     DOCSTRING
     """
     
-    def __init__(self, dir_meta_data_json: str, dir_active_profile: str, dir_reactive_profile: str, dir_EV_charging_profile: str, LV_feeder_ids: List[int]):   
+    def __init__(self, dir_network_json: str, dir_active_profile: str, dir_reactive_profile: str, dir_ev_active_profile: str, dir_meta_data_json: str):   
          
         """
         Serializing the json file.
         """ 
         with open(dir_meta_data_json) as fp:
             data = fp.read()
-        dataset = json_deserialize(data)
-        self.pgm_input = dataset
+        self.meta_data = json.loads(data)
+        print(self.meta_data)
         
+        with open(dir_network_json) as fp:
+            data = fp.read()
+        self.pgm_input = json_deserialize(data)
+        print("test")
+        print(self.pgm_input)
         # Read active and reactive load profile from parquet file
-        self.active_load_profile = pd.read_parquet(dir_active_profile)
-        self.reactive_load_profile = pd.read_parquet(dir_reactive_profile)
+        # self.active_load_profile = pd.read_parquet(dir_active_profile)
+        # self.reactive_load_profile = pd.read_parquet(dir_reactive_profile)
+        # self.ev_active_profile = pd.read_parquet(dir_ev_active_profile)
         
-        pgm.validation.assert_valid_input_data(self.pgm_input)
+        # pgm.validation.assert_valid_input_data(self.pgm_input)
 
-        self.pgm_model = pgm.PowerGridModel(self.pgm_input)
+        # self.pgm_model = pgm.PowerGridModel(self.pgm_input)
         
         """
         Validity checks need to be made to ensure that there is no overlap or mismatching between the relevant IDs and profiles. Read 'input validity check' in assignment 3 for the specific checks.
@@ -151,4 +157,7 @@ class LV_grid:
         Returns:
             Table with results of every scenario with a different alternative line connected.
         """
+        # print(self.pgm_input)
+        # gp = pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
+        
         pass    
