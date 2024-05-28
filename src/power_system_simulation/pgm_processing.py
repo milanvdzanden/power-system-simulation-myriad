@@ -49,20 +49,16 @@ class PgmProcessor:
     DOCSTRING
     """
 
-    def __init__(self, dir_network_json: str, dir_active_profile: str, dir_reactive_profile: str):
+    def __init__(self, network_data, active_profile, reactive_profile):
         """
         Write the initialization code to load the 3 files in the argument directories and put them into a power-grid-model model
         You will need to de-serialize the .json input for the input_network_data file (https://power-grid-model.readthedocs.io/en/stable/examples/Serialization%20Example.html)
         Store the data in the self.[...] variables, since then the later functions can access these parameters directly from the class (no need to pass args)
         """
-        with open(dir_network_json) as fp:
-            data = fp.read()
-        dataset = json_deserialize(data)
-        self.pgm_input = dataset
+        self.pgm_input = network_data
         
-        # Read active and reactive load profile from parquet file
-        self.active_load_profile = pd.read_parquet(dir_active_profile)
-        self.reactive_load_profile = pd.read_parquet(dir_reactive_profile)
+        self.active_load_profile = active_profile
+        self.reactive_load_profile = reactive_profile
 
         """
             Construct the PGM using the input data

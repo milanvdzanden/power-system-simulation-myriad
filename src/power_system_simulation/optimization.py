@@ -192,4 +192,5 @@ class LV_grid:
             pgm_input_alternative['line'][input_edge_index][3] = 0
             
             # Do the calculation for pgm_input_alternative
+            #p = pgm_p.PgmProcessor()
             
