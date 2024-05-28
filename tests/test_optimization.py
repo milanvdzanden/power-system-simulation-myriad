@@ -33,6 +33,8 @@ def test_optimization():
     reactive_profile = pd.read_parquet(dir_reactive_profile)
     ev_active_profile = pd.read_parquet(dir_ev_active_profile)
     
+
+    
     """
     Insert here the file that will be given. (not available yet)
     Choose a random seed to keep it consistent.

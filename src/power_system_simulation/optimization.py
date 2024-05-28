@@ -154,10 +154,10 @@ class LV_grid:
             edge_enabled.append(True)
             edge_ids.append(transformer[0])
         
-        print(edge_vertex_id_pairs)
-        print(edge_enabled)
-        print(edge_ids)
-        print(vertex_ids)
+        #print(edge_vertex_id_pairs)
+        #print(edge_enabled)
+        #print(edge_ids)
+        #print(vertex_ids)
         
         gp = pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
         
@@ -166,10 +166,12 @@ class LV_grid:
         feeder_nodes = {}
         for feeder_id in self.meta_data["lv_feeders"]:
             feeder_nodes[feeder_id] = gp.find_downstream_vertices(feeder_id)
-        print(feeder_nodes)
+        #print(feeder_nodes[16])
+        
+        #print(gp.find_downstream_vertices(feeder_id))
         
         sym_houses = [house[1] for house in self.pgm_input["sym_load"]]
-        print(sym_houses)
+        ## print(sym_houses)
         
         #get the total houses and nmr lv feeders from pgm_input
         total_houses = len(sym_houses)
@@ -178,19 +180,23 @@ class LV_grid:
         #calculation of nmr ev (electrical vehicles) per lv feeder 
         nmr_ev_per_lv_feeder = math.floor(penetration_level * total_houses / total_feeders)
         
-        list_random = random.sample()
+       ## list_random = random.sample()
         
         # Load data from JSON file
         with open('input_network_data.json', 'r') as self.pgm_input["sym_load"]:
             json_data = json.load(self.pgm_input["sym_load"])
 
+        #print(json_data['type']['input'])
         # Convert JSON data to DataFrame (assuming it's a list of dictionaries)
         json_df = pd.DataFrame(json_data)
+        new = json_df[json_df['type'] == 'input']
+        print(new)
 
         # Concatenate DataFrames vertically
         combined_df = pd.concat([self.ev_active_profile, json_df])
-        print(self.ev_active_profile)
-        print(combined_df)
+        #print(self.ev_active_profile)
+        #print(combined_df)
+        #print(json_data)
         
     def N_1_calculation(self,line_id):
         
