@@ -85,7 +85,8 @@ class IDNotUniqueError(Exception):
             + "or edges (if 1) in the graph: T"
             + str(mode),
         )
-        
+
+
 class GraphNotFullyConnectedError(Exception):
     """
     Error class for GraphNotFullyConnectedError
@@ -138,6 +139,7 @@ class GraphProcessor:
     You need to describe the purpose of this class and the functions in it.
     We are using an undirected graph in the processor.
     """
+
     def __init__(
         self,
         vertex_ids: List[int],
@@ -146,7 +148,6 @@ class GraphProcessor:
         edge_enabled: List[bool],
         source_vertex_id: int,
     ) -> None:
-
         """
         Initialize a graph processor object with an undirected graph.
         Only the edges which are enabled are taken into account.
@@ -180,7 +181,7 @@ class GraphProcessor:
         # Check: vertex_ids - is unique?
         if not len(vertex_ids) == len(set(vertex_ids)):
             raise IDNotUniqueError(0)
-        
+
         # Check: edge_ids - is unique?
         if not len(edge_ids) == len(set(edge_ids)):
             raise IDNotUniqueError(1)
@@ -188,7 +189,7 @@ class GraphProcessor:
         # Check: edge_enabled and edge_ids - are same length?
         if not len(edge_enabled) == len(edge_ids):
             raise InputLengthDoesNotMatchError(0, len(edge_enabled), len(edge_ids))
-        
+
         # Check: edge_vertex_id_pairs and edge_ids - are same length?
         if not len(edge_vertex_id_pairs) == len(edge_ids):
             raise InputLengthDoesNotMatchError(1, len(edge_vertex_id_pairs), len(edge_ids))
@@ -197,32 +198,32 @@ class GraphProcessor:
         for x in edge_vertex_id_pairs:
             if (x[0] not in vertex_ids) or (x[1] not in vertex_ids):
                 raise IDNotFoundError(0)
-            
+
         # Check: source_vertex_id - is source vortex id valid?
         if source_vertex_id not in vertex_ids:
             raise IDNotFoundError(1)
 
         # Basic checks completed, graph can now be constructed.
         self.graph_enabled_edges = nx.Graph()
-        self.graph_enabled_edges_ids = [];
+        self.graph_enabled_edges_ids = []
         self.graph_enabled_edges.add_nodes_from(vertex_ids)
         edge_vertex_id_pairs_enabled = []
-        
+
         # Find the list of enabled edges
         for x in range(0, len(edge_vertex_id_pairs)):
             if edge_enabled[x]:
                 self.graph_enabled_edges_ids.append(edge_ids[x])
                 edge_vertex_id_pairs_enabled.append(edge_vertex_id_pairs[x])
-        
+
         self.graph_enabled_edges.add_edges_from(edge_vertex_id_pairs_enabled)
         self.graph_all_edges = nx.Graph()
         self.graph_all_edges.add_nodes_from(vertex_ids)
         self.graph_all_edges.add_edges_from(edge_vertex_id_pairs)
-        
+
         # Check: graph - is fully connected?
         if not nx.is_connected(self.graph_all_edges):
             raise GraphNotFullyConnectedError()
-        
+
         # Check: graph - has no cycles?
         try:
             nx.find_cycle(self.graph_enabled_edges)
@@ -278,7 +279,7 @@ class GraphProcessor:
 
         list_of_islands_before = []
 
-        for i,c in enumerate(nx.connected_components(graph)):
+        for i, c in enumerate(nx.connected_components(graph)):
             list_of_islands_before.append(list(c))
 
         # Step 2 is calculated here
@@ -300,7 +301,7 @@ class GraphProcessor:
 
         list_of_islands_after = []
 
-        for i,c in enumerate(nx.connected_components(graph)):
+        for i, c in enumerate(nx.connected_components(graph)):
             list_of_islands_after.append(list(c))
 
         output_list = []
@@ -323,7 +324,7 @@ class GraphProcessor:
 
         output = output_list[0]
         return output
-    
+
     def find_alternative_edges(self, disabled_edge_id: int) -> List[int]:
         """
         Given an enabled edge, do the following analysis:
