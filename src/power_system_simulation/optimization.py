@@ -11,6 +11,8 @@ with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
     # suppress warning about pyarrow as future required dependency
     from pandas import DataFrame
 import math as math   
+import copy
+import random
 import numpy as np
 import pandas as pd
 import power_grid_model as pgm
@@ -138,27 +140,58 @@ class LV_grid:
             Two aggregation tables using Assignment 2.
             
         NOTE: The EV charging profile does not have sym_load IDs in the column header. They are just sequence numbers of the pool. Assigning the EV profiles to sym_load is part of the assignment tasks.
-        """
-        #calculation of nmr ev (electrical vehicles) per lv feeder 
-        nmr_ev_per_lv_feeder = math.floor(penetration_level * total_houses / number_of_feeders)
-        
-        #make Graphprocessing instance to randomly select houses with ev 
+        """        
+        #make Graphprocessing instance to randomly select houses with ev         
         vertex_ids = [node[0] for node in self.pgm_input["node"]]
         edge_ids = [edge[0] for edge in self.pgm_input["line"]]
         edge_vertex_id_pairs = [(edge[1], edge[2]) for edge in self.pgm_input["line"]]
         edge_enabled = [(edge[3] == 1 and edge[4] == 1) for edge in self.pgm_input["line"]]
         source_vertex_id = self.pgm_input["source"][0][1]
         
+        # Pretend all transformers are short circuits, so that GraphProcessor can use it
+        for transformer in self.pgm_input["transformer"]:
+            edge_vertex_id_pairs.append((transformer[1], transformer[2]))
+            edge_enabled.append(True)
+            edge_ids.append(transformer[0])
+        
+        print(edge_vertex_id_pairs)
+        print(edge_enabled)
+        print(edge_ids)
+        print(vertex_ids)
+        
         gp = pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
         
-        #use this instance to know which houses for which feeder
-        feeder_houses = {}
-        for feeder_id in self.meta_data["feeders"]:
-            feeder_houses[feeder_id] = gp.find_downstream_vertices(feeder_id)
+        #use the instance to know which houses for which feeder
+        #see which lines are feeders and which nodes/houses are connected
+        feeder_nodes = {}
+        for feeder_id in self.meta_data["lv_feeders"]:
+            feeder_nodes[feeder_id] = gp.find_downstream_vertices(feeder_id)
+        print(feeder_nodes)
         
+        sym_houses = [house[1] for house in self.pgm_input["sym_load"]]
+        print(sym_houses)
         
+        #get the total houses and nmr lv feeders from pgm_input
+        total_houses = len(sym_houses)
+        total_feeders = len(feeder_nodes)
         
-        pass
+        #calculation of nmr ev (electrical vehicles) per lv feeder 
+        nmr_ev_per_lv_feeder = math.floor(penetration_level * total_houses / total_feeders)
+        
+        list_random = random.sample()
+        
+        # Load data from JSON file
+        with open('input_network_data.json', 'r') as self.pgm_input["sym_load"]:
+            json_data = json.load(self.pgm_input["sym_load"])
+
+        # Convert JSON data to DataFrame (assuming it's a list of dictionaries)
+        json_df = pd.DataFrame(json_data)
+
+        # Concatenate DataFrames vertically
+        combined_df = pd.concat([self.ev_active_profile, json_df])
+        print(self.ev_active_profile)
+        print(combined_df)
+        
     def N_1_calculation(self,line_id):
         
         """
@@ -191,7 +224,7 @@ class LV_grid:
         
         for alternative_edge in gp.find_alternative_edges(line_id):
             # Enable the alternative edge in the json, disable line_id (the input line)
-            pgm_input_alternative = self.pgm_input.copy()
+            pgm_input_alternative = copy.deepcopy(self.pgm_input)
             alternative_edge_index = next((i for i, item in enumerate(pgm_input_alternative['line']) if item['id'] == alternative_edge), None)
             input_edge_index = next((i for i, item in enumerate(pgm_input_alternative['line']) if item['id'] == line_id), None)
             

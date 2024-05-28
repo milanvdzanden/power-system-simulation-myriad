@@ -267,7 +267,7 @@ class GraphProcessor:
         for edge_to_check in self.edge_vertex_id_pairs:
             edge_to_check_index = self.edge_vertex_id_pairs.index(edge_to_check)
 
-            if self.edge_enabled[edge_to_check_index] is True:
+            if self.edge_enabled[edge_to_check_index] == True:
                 edge_ids_enabled_before.append(self.edge_ids[edge_to_check_index])
                 edge_vertex_id_pairs_enabled_before.append(edge_to_check)
 
@@ -292,7 +292,6 @@ class GraphProcessor:
                 edge_vertex_id_pairs_enabled_after.append(
                     edge_vertex_id_pairs_enabled_before[edge_index]
                 )
-
         # Step 3: Calculate the new islands
         ## Island calculation after
         graph = nx.Graph()
@@ -305,7 +304,6 @@ class GraphProcessor:
             list_of_islands_after.append(list(c))
 
         output_list = []
-
         # Step 4: Remove the islands that were already there in Step 1
         # Step 5: Check which remaining islands contain the source vertex, the other one
         # IS the output
@@ -322,7 +320,10 @@ class GraphProcessor:
             if not contains_source:
                 output_list.append(id_list)
 
-        output = output_list[0]
+        try:
+            output = output_list[0]
+        except:
+            output = []
         return output
 
     def find_alternative_edges(self, disabled_edge_id: int) -> List[int]:

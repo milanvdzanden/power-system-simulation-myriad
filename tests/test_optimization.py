@@ -33,7 +33,6 @@ def test_optimization():
     reactive_profile = pd.read_parquet(dir_reactive_profile)
     ev_active_profile = pd.read_parquet(dir_ev_active_profile)
     
-    print(meta_data)
     """
     Insert here the file that will be given. (not available yet)
     Choose a random seed to keep it consistent.
@@ -57,6 +56,7 @@ def test_optimization():
     
     p = psso.LV_grid(network_data, active_profile, reactive_profile, ev_active_profile, meta_data)
     p.N_1_calculation(18)
+    p.EV_penetration_level(1)
 
 test_optimization()    
 
