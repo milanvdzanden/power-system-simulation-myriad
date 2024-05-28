@@ -68,28 +68,20 @@ class LV_grid:
     DOCSTRING
     """
     
-    def __init__(self, dir_network_json: str, dir_active_profile: str, dir_reactive_profile: str, dir_ev_active_profile: str, dir_meta_data_json: str):   
+    def __init__(self, network_data: str, active_profile: str, reactive_profile: str, ev_active_profile: str, meta_data: str):   
          
         """
         Serializing the json file.
         """ 
-        with open(dir_meta_data_json) as fp:
-            data = fp.read()
-        self.meta_data = json.loads(data)
+        self.meta_data = meta_data
         
-        self.dir_network_json = dir_network_json
-        with open(dir_network_json) as fp:
-            data = fp.read()
-        self.pgm_input = json_deserialize(data)
+        self.pgm_input = network_data
         # Read active and reactive load profile from parquet file
-        self.active_load_profile = pd.read_parquet(dir_active_profile)
-        self.dir_active_load_profile = dir_active_profile
+        self.active_load_profile = active_profile
         
-        self.reactive_load_profile = pd.read_parquet(dir_reactive_profile)
-        self.dir_reactive_load_profile = dir_reactive_profile
+        self.reactive_load_profile = reactive_profile
         
-        self.ev_active_profile = pd.read_parquet(dir_ev_active_profile)
-        self.dir_ev_active_load_profile = dir_ev_active_profile
+        self.ev_active_profile = ev_active_profile
         
         pgm.validation.assert_valid_input_data(self.pgm_input)
 
