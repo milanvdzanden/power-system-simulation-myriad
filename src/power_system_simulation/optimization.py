@@ -10,7 +10,7 @@ import pyarrow
 with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
     # suppress warning about pyarrow as future required dependency
     from pandas import DataFrame
-    
+import math as math   
 import numpy as np
 import pandas as pd
 import power_grid_model as pgm
@@ -87,6 +87,7 @@ class LV_grid:
 
         self.pgm_model = pgm.PowerGridModel(self.pgm_input)
         
+        
         """
         Validity checks need to be made to ensure that there is no overlap or mismatching between the relevant IDs and profiles. Read 'input validity check' in assignment 3 for the specific checks.
         also raise or passthrough relevant errors.
@@ -123,7 +124,7 @@ class LV_grid:
         To our understanding, an EV feeder is just a branch. This means that the list of feeder IDs contains all line IDs of every start of a branch.
         
         Second: Use Assignment 1 to see which house is in which branch/feeder.
-        Then within each feeder randomly select houses whih will have an EV charger. Don't forget the number of EVs per LV feeder.
+        Then within each feeder randomly select houses which will have an EV charger. Don't forget the number of EVs per LV feeder.
                     
         Third: For each selected house with EV, randomly select an EV charging profile to add to the sym_load of that house.
         Every profile can not be used twice -> there will be enough profiles to cover all of sym_load.
@@ -138,6 +139,25 @@ class LV_grid:
             
         NOTE: The EV charging profile does not have sym_load IDs in the column header. They are just sequence numbers of the pool. Assigning the EV profiles to sym_load is part of the assignment tasks.
         """
+        #calculation of nmr ev (electrical vehicles) per lv feeder 
+        nmr_ev_per_lv_feeder = math.floor(penetration_level * total_houses / number_of_feeders)
+        
+        #make Graphprocessing instance to randomly select houses with ev 
+        vertex_ids = [node[0] for node in self.pgm_input["node"]]
+        edge_ids = [edge[0] for edge in self.pgm_input["line"]]
+        edge_vertex_id_pairs = [(edge[1], edge[2]) for edge in self.pgm_input["line"]]
+        edge_enabled = [(edge[3] == 1 and edge[4] == 1) for edge in self.pgm_input["line"]]
+        source_vertex_id = self.pgm_input["source"][0][1]
+        
+        gp = pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
+        
+        #use this instance to know which houses for which feeder
+        feeder_houses = {}
+        for feeder_id in self.meta_data["feeders"]:
+            feeder_houses[feeder_id] = gp.find_downstream_vertices(feeder_id)
+        
+        
+        
         pass
     def N_1_calculation(self,line_id):
         
