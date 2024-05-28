@@ -22,6 +22,9 @@ from power_grid_model import LoadGenType
 from power_grid_model import PowerGridModel, CalculationMethod, CalculationType, MeasuredTerminalType
 from power_grid_model import initialize_array
 
+import power_system_simulation.graph_processing as pss
+import power_system_simulation.pgm_processing as pgm_p
+
 
 
 class LV_Feeder_error(Exception):
@@ -73,21 +76,24 @@ class LV_grid:
         with open(dir_meta_data_json) as fp:
             data = fp.read()
         self.meta_data = json.loads(data)
-        print(self.meta_data)
         
+        self.dir_network_json = dir_network_json
         with open(dir_network_json) as fp:
             data = fp.read()
         self.pgm_input = json_deserialize(data)
-        print("test")
-        print(self.pgm_input)
         # Read active and reactive load profile from parquet file
-        # self.active_load_profile = pd.read_parquet(dir_active_profile)
-        # self.reactive_load_profile = pd.read_parquet(dir_reactive_profile)
-        # self.ev_active_profile = pd.read_parquet(dir_ev_active_profile)
+        self.active_load_profile = pd.read_parquet(dir_active_profile)
+        self.dir_active_load_profile = dir_active_profile
         
-        # pgm.validation.assert_valid_input_data(self.pgm_input)
+        self.reactive_load_profile = pd.read_parquet(dir_reactive_profile)
+        self.dir_reactive_load_profile = dir_reactive_profile
+        
+        self.ev_active_profile = pd.read_parquet(dir_ev_active_profile)
+        self.dir_ev_active_load_profile = dir_ev_active_profile
+        
+        pgm.validation.assert_valid_input_data(self.pgm_input)
 
-        # self.pgm_model = pgm.PowerGridModel(self.pgm_input)
+        self.pgm_model = pgm.PowerGridModel(self.pgm_input)
         
         """
         Validity checks need to be made to ensure that there is no overlap or mismatching between the relevant IDs and profiles. Read 'input validity check' in assignment 3 for the specific checks.
@@ -157,7 +163,33 @@ class LV_grid:
         Returns:
             Table with results of every scenario with a different alternative line connected.
         """
-        # print(self.pgm_input)
-        # gp = pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
+        vertex_ids = [node[0] for node in self.pgm_input["node"]]
+        edge_ids = [edge[0] for edge in self.pgm_input["line"]]
+        edge_vertex_id_pairs = [(edge[1], edge[2]) for edge in self.pgm_input["line"]]
+        edge_enabled = [(edge[3] == 1 and edge[4] == 1) for edge in self.pgm_input["line"]]
+        source_vertex_id = self.pgm_input["source"][0][1]
         
-        pass    
+        # Pretend all transformers are short circuits, so that GraphProcessor can use it
+        for transformer in self.pgm_input["transformer"]:
+            edge_vertex_id_pairs.append((transformer[1], transformer[2]))
+            edge_enabled.append(True)
+            edge_ids.append(transformer[0])
+        
+        gp = pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
+        
+        for alternative_edge in gp.find_alternative_edges(line_id):
+            # Enable the alternative edge in the json, disable line_id (the input line)
+            pgm_input_alternative = self.pgm_input.copy()
+            alternative_edge_index = next((i for i, item in enumerate(pgm_input_alternative['line']) if item['id'] == alternative_edge), None)
+            input_edge_index = next((i for i, item in enumerate(pgm_input_alternative['line']) if item['id'] == line_id), None)
+            
+            # Enable the alternative edge
+            pgm_input_alternative['line'][alternative_edge_index][4] = 1
+            pgm_input_alternative['line'][alternative_edge_index][3] = 1
+            
+            # Disable the input edge
+            pgm_input_alternative['line'][input_edge_index][4] = 0
+            pgm_input_alternative['line'][input_edge_index][3] = 0
+            
+            # Do the calculation for pgm_input_alternative
+            

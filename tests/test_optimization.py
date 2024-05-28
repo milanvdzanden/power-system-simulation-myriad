@@ -39,7 +39,7 @@ def test_optimization():
     """
     
     p = psso.LV_grid(dir_network_json, dir_active_profile, dir_reactive_profile, dir_ev_active_profile, dir_meta_data_json)
-    p.N_1_calculation(1)
+    p.N_1_calculation(18)
 
 test_optimization()    
     
