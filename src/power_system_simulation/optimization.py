@@ -153,59 +153,49 @@ class LV_grid:
             edge_vertex_id_pairs.append((transformer[1], transformer[2]))
             edge_enabled.append(True)
             edge_ids.append(transformer[0])
-        
-        #print(edge_vertex_id_pairs)
-        #print(edge_enabled)
-        #print(edge_ids)
-        #print(vertex_ids)
-        
         gp = pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
         
         #use the instance to know which houses for which feeder
         #see which lines are feeders and which nodes/houses are connected
         
-
-        
-        
+         
         feeder_nodes = {}
         feeders = []
         feeder_houses = {}
         total_real_house_per_LV = []
-        l = 0
+        EV_houses = {}
         
+        #see which feeder has which nodes
         for feeder_id in self.meta_data["lv_feeders"]:
             feeders.append(feeder_id)
             feeder_nodes[feeder_id] = gp.find_downstream_vertices(feeder_id)
-            
-        sym_houses = [house[1] for house in self.pgm_input["sym_load"]]
+        
         #get the total houses and nmr lv feeders from pgm_input
+        sym_houses = [house[1] for house in self.pgm_input["sym_load"]]
         total_houses = len(sym_houses)
         total_feeders = len(feeder_nodes)
+        nmr_ev_per_lv_feeder = math.floor(penetration_level * total_houses / total_feeders)
         
-        
+        #get which houses are from which feeder
         for x in range(len(feeders)):
             houses_fr = [i for i in sym_houses if i in feeder_nodes[feeders[x]]]
             total_real_house_per_LV.append(houses_fr)
-        #print(total_real_house_per_LV)
-        
-        # for x in range(len(total_real_house_per_LV)):
-        #     for feeder_id in self.meta_data["lv_feeders"]:
-        #         if l != 1:
-        #             feeder_houses[feeder_id] = total_real_house_per_LV[x]
-        #             print(total_real_house_per_LV[x])
-        #             l = 1
-        
-        for x in range(len(total_real_house_per_LV)):
+        for x in range(len(feeders)):
             feeder_id = self.meta_data["lv_feeders"][x % len(self.meta_data["lv_feeders"])]
             feeder_houses[feeder_id] = total_real_house_per_LV[x]
-            print(total_real_house_per_LV[x])
+        
+        #get which houses will have EV per feeder
+        for feeder_id in self.meta_data["lv_feeders"]:
+            random_houses_ev = random.choices(feeder_houses[feeder_id], k = nmr_ev_per_lv_feeder)
+            EV_houses[feeder_id] = random_houses_ev
+     
+           
+             
+          
             
-            
-        print(feeder_houses)
     
         #calculation of nmr ev (electrical vehicles) per lv feeder 
-        nmr_ev_per_lv_feeder = math.floor(penetration_level * total_houses / total_feeders)
-        # print(nmr_ev_per_lv_feeder)
+
         random_houses_ev = random.choices(houses_fr, k = nmr_ev_per_lv_feeder)
         # print(random_houses_ev)
         # list_random = random.sample(houses_fr,nmr_ev_per_lv_feeder)
