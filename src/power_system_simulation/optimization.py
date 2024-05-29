@@ -189,9 +189,14 @@ class LV_grid:
             random_houses_ev = random.choices(feeder_houses[feeder_id], k = nmr_ev_per_lv_feeder)
             EV_houses[feeder_id] = random_houses_ev
      
-           
-             
+        parquet_df = pd.DataFrame(self.ev_active_profile)
+        columns = list(parquet_df.columns.values)
+        random_profile = random.choices(columns, k = 1)
+        print(random_profile)
+        
           
+             
+        
             
     
         #calculation of nmr ev (electrical vehicles) per lv feeder 
@@ -223,13 +228,26 @@ class LV_grid:
        ## list_random = random.sample()
         
         # Load data from JSON file
-        with open('input_network_data.json', 'r') as self.pgm_input["sym_load"]:
-            json_data = json.load(self.pgm_input["sym_load"])
+        
 
         #print(json_data['type']['input'])
         # Convert JSON data to DataFrame (assuming it's a list of dictionaries)
-        json_df = pd.DataFrame(json_data)
-        new = json_df[json_df['type'] == 'input']
+        #json_df = pd.DataFrame(self.pgm_input["sym_load"])
+        #print(json_df)
+        # parquet_df = pd.DataFrame(self.ev_active_profile)
+        # columns = list(parquet_df.columns.values)
+        # print(columns)
+        # random_profile = random.choices(columns, k = 1)
+        # print(random_profile)
+        
+        
+        
+        #print(parquet_df)
+        
+        #combined_df = pd.concat([parquet_df, json_df])
+        #df_concat = pd.concat([parquet_df, json_df], axis=0)
+        #print(df_concat)
+        
         #print(new)
 
         # Concatenate DataFrames vertically
