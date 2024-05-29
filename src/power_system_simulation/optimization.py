@@ -163,16 +163,66 @@ class LV_grid:
         
         #use the instance to know which houses for which feeder
         #see which lines are feeders and which nodes/houses are connected
+        
+
+        
+        
         feeder_nodes = {}
+        feeders = []
+        feeder_houses = {}
+        total_real_house_per_LV = []
+        l = 0
+        
         for feeder_id in self.meta_data["lv_feeders"]:
+            feeders.append(feeder_id)
             feeder_nodes[feeder_id] = gp.find_downstream_vertices(feeder_id)
+            
+        sym_houses = [house[1] for house in self.pgm_input["sym_load"]]
+        #get the total houses and nmr lv feeders from pgm_input
+        total_houses = len(sym_houses)
+        total_feeders = len(feeder_nodes)
+        
+        
+        for x in range(len(feeders)):
+            houses_fr = [i for i in sym_houses if i in feeder_nodes[feeders[x]]]
+            total_real_house_per_LV.append(houses_fr)
+        #print(total_real_house_per_LV)
+        
+        # for x in range(len(total_real_house_per_LV)):
+        #     for feeder_id in self.meta_data["lv_feeders"]:
+        #         if l != 1:
+        #             feeder_houses[feeder_id] = total_real_house_per_LV[x]
+        #             print(total_real_house_per_LV[x])
+        #             l = 1
+        
+        for x in range(len(total_real_house_per_LV)):
+            feeder_id = self.meta_data["lv_feeders"][x % len(self.meta_data["lv_feeders"])]
+            feeder_houses[feeder_id] = total_real_house_per_LV[x]
+            print(total_real_house_per_LV[x])
+            
+            
+        print(feeder_houses)
+    
+        #calculation of nmr ev (electrical vehicles) per lv feeder 
+        nmr_ev_per_lv_feeder = math.floor(penetration_level * total_houses / total_feeders)
+        # print(nmr_ev_per_lv_feeder)
+        random_houses_ev = random.choices(houses_fr, k = nmr_ev_per_lv_feeder)
+        # print(random_houses_ev)
+        # list_random = random.sample(houses_fr,nmr_ev_per_lv_feeder)
+        # print(list_random)
+            
+        #print(feeder_id)    
         #print(feeder_nodes[16])
+
         
         #print(gp.find_downstream_vertices(feeder_id))
         
-        sym_houses = [house[1] for house in self.pgm_input["sym_load"]]
-        ## print(sym_houses)
+        # sym_houses = [house[1] for house in self.pgm_input["sym_load"]]
+        #print(sym_houses)
         
+        # noeww = [i for i in sym_houses if i in feeder_nodes[16]]
+        # print(noeww)
+    
         #get the total houses and nmr lv feeders from pgm_input
         total_houses = len(sym_houses)
         total_feeders = len(feeder_nodes)
@@ -190,10 +240,10 @@ class LV_grid:
         # Convert JSON data to DataFrame (assuming it's a list of dictionaries)
         json_df = pd.DataFrame(json_data)
         new = json_df[json_df['type'] == 'input']
-        print(new)
+        #print(new)
 
         # Concatenate DataFrames vertically
-        combined_df = pd.concat([self.ev_active_profile, json_df])
+        #combined_df = pd.concat([self.ev_active_profile, json_df])
         #print(self.ev_active_profile)
         #print(combined_df)
         #print(json_data)

@@ -58,7 +58,7 @@ def test_optimization():
     
     p = psso.LV_grid(network_data, active_profile, reactive_profile, ev_active_profile, meta_data)
     p.N_1_calculation(18)
-    p.EV_penetration_level(1)
+    p.EV_penetration_level(0.8)
 
 test_optimization()    
 
