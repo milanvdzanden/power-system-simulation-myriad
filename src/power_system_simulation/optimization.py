@@ -188,15 +188,17 @@ class LV_grid:
         
         #get which houses will have EV per feeder
         for feeder_id in self.meta_data["lv_feeders"]:
-            random_houses_ev = random.sample(feeder_houses[feeder_id], 2)
+            random_houses_ev = random.sample(feeder_houses[feeder_id], nmr_ev_per_lv_feeder)
             EV_houses[feeder_id] = random_houses_ev    
         parquet_df = pd.DataFrame(self.ev_active_profile)
         columns = list(parquet_df.columns.values)
         
+        #get random profiles
         random.shuffle(columns)
         amount_profiles = len(feeders)
-        random_profile = [columns[i:i+2] for i in range(0, len(columns), 2)][:amount_profiles]
+        random_profile = [columns[i:i+nmr_ev_per_lv_feeder] for i in range(0, len(columns), nmr_ev_per_lv_feeder)][:amount_profiles]
         
+        #assign which random profile is paired with which house
         o = 0
         for x in feeders:
             l = 0
