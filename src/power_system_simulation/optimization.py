@@ -158,12 +158,14 @@ class LV_grid:
         #use the instance to know which houses for which feeder
         #see which lines are feeders and which nodes/houses are connected
         
-         
+        #random.seed(0)
         feeder_nodes = {}
         feeders = []
         feeder_houses = {}
         total_real_house_per_LV = []
         EV_houses = {}
+        House_Profile = {}
+        already_used_random = []
         
         #see which feeder has which nodes
         for feeder_id in self.meta_data["lv_feeders"]:
@@ -186,18 +188,27 @@ class LV_grid:
         
         #get which houses will have EV per feeder
         for feeder_id in self.meta_data["lv_feeders"]:
-            random_houses_ev = random.choices(feeder_houses[feeder_id], k = nmr_ev_per_lv_feeder)
-            EV_houses[feeder_id] = random_houses_ev
-     
+            random_houses_ev = random.sample(feeder_houses[feeder_id], 2)
+            EV_houses[feeder_id] = random_houses_ev    
         parquet_df = pd.DataFrame(self.ev_active_profile)
         columns = list(parquet_df.columns.values)
-        random_profile = random.choices(columns, k = 1)
-        print(random_profile)
         
-          
-             
+        random.shuffle(columns)
+        amount_profiles = len(feeders)
+        random_profile = [columns[i:i+2] for i in range(0, len(columns), 2)][:amount_profiles]
         
-            
+        o = 0
+        for x in feeders:
+            l = 0
+            for i in EV_houses[x]:
+                House_number_list = EV_houses[x]
+                House_number = House_number_list[l]
+                House_Profile[House_number] = random_profile[o][l]
+                l = l+1    
+            o = o+1
+        
+        
+  
     
         #calculation of nmr ev (electrical vehicles) per lv feeder 
 
