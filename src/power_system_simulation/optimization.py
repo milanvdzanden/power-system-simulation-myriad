@@ -203,8 +203,8 @@ class LV_grid:
             index_of_random_profile = 0
             for i in EV_houses[x]:
                 House_number_list = EV_houses[x]
-                House_number = House_number_list[l]
-                House_Profile[House_number] = random_profile[o][l]
+                House_number = House_number_list[index_of_random_profile]
+                House_Profile[House_number] = random_profile[index_of_feeders][index_of_random_profile]
                 index_of_random_profile = index_of_random_profile+1    
             index_of_feeders = index_of_feeders+1
         
