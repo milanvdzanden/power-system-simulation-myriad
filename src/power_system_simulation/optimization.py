@@ -6,6 +6,7 @@ import json
 import pprint
 import warnings
 import pyarrow
+import copy
 
 with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
     # suppress warning about pyarrow as future required dependency
@@ -168,10 +169,12 @@ class LV_grid:
             edge_ids.append(transformer[0])
         
         gp = pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
+               
+        df_output = pd.DataFrame(columns= ["alternative_edge", "max_loading", "max_loading_line", "timestamp_max"])
         
-        for alternative_edge in gp.find_alternative_edges(line_id):
+        for index, alternative_edge in enumerate(gp.find_alternative_edges(line_id)):
             # Enable the alternative edge in the json, disable line_id (the input line)
-            pgm_input_alternative = self.pgm_input.copy()
+            pgm_input_alternative = copy.deepcopy(self.pgm_input)
             alternative_edge_index = next((i for i, item in enumerate(pgm_input_alternative['line']) if item['id'] == alternative_edge), None)
             input_edge_index = next((i for i, item in enumerate(pgm_input_alternative['line']) if item['id'] == line_id), None)
             
@@ -184,5 +187,21 @@ class LV_grid:
             pgm_input_alternative['line'][input_edge_index][3] = 0
             
             # Do the calculation for pgm_input_alternative
-            #p = pgm_p.PgmProcessor()
+            p = pgm_p.PgmProcessor(pgm_input_alternative, self.active_load_profile, self.reactive_load_profile)
+            p.create_update_model()
+            p.run_batch_process()
+            [df_min_max_nodes,df_line_loss] = p.get_aggregate_results()
             
+            # find index of max loading row
+            max_index = df_line_loss["max_loading"].idxmax()
+            # use index to save max loading row
+            max_row = df_line_loss.loc[max_index]
+            
+            # put data in output dataframe
+            df_output.loc[index, "alternative_edge"] = alternative_edge
+            df_output.loc[index, "max_loading"] = max_row["max_loading"]
+            df_output.loc[index, "max_loading_line"] = max_row.name
+            df_output.loc[index, "timestamp_max"] = max_row["timestamp_max"]
+        
+        df_output.set_index("alternative_edge", inplace = True)
+        return df_output
