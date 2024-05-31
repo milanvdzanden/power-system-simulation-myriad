@@ -180,94 +180,35 @@ class LV_grid:
         
         #get which houses are from which feeder
         for x in range(len(feeders)):
-            houses_fr = [i for i in sym_houses if i in feeder_nodes[feeders[x]]]
-            total_real_house_per_LV.append(houses_fr)
+            houses = [i for i in sym_houses if i in feeder_nodes[feeders[x]]]
+            total_real_house_per_LV.append(houses)
         for x in range(len(feeders)):
             feeder_id = self.meta_data["lv_feeders"][x % len(self.meta_data["lv_feeders"])]
             feeder_houses[feeder_id] = total_real_house_per_LV[x]
         
-        #get which houses will have EV per feeder
+        #get which houses will have an EV per feeder
         for feeder_id in self.meta_data["lv_feeders"]:
             random_houses_ev = random.sample(feeder_houses[feeder_id], nmr_ev_per_lv_feeder)
             EV_houses[feeder_id] = random_houses_ev    
         parquet_df = pd.DataFrame(self.ev_active_profile)
         columns = list(parquet_df.columns.values)
         
-        #get random profiles
+        #get random profiles with no repetitives
         random.shuffle(columns)
         amount_profiles = len(feeders)
         random_profile = [columns[i:i+nmr_ev_per_lv_feeder] for i in range(0, len(columns), nmr_ev_per_lv_feeder)][:amount_profiles]
         
         #assign which random profile is paired with which house
-        o = 0
+        index_of_feeders = 0
         for x in feeders:
-            l = 0
+            index_of_random_profile = 0
             for i in EV_houses[x]:
                 House_number_list = EV_houses[x]
                 House_number = House_number_list[l]
                 House_Profile[House_number] = random_profile[o][l]
-                l = l+1    
-            o = o+1
+                index_of_random_profile = index_of_random_profile+1    
+            index_of_feeders = index_of_feeders+1
         
-        
-  
-    
-        #calculation of nmr ev (electrical vehicles) per lv feeder 
-
-        random_houses_ev = random.choices(houses_fr, k = nmr_ev_per_lv_feeder)
-        # print(random_houses_ev)
-        # list_random = random.sample(houses_fr,nmr_ev_per_lv_feeder)
-        # print(list_random)
-            
-        #print(feeder_id)    
-        #print(feeder_nodes[16])
-
-        
-        #print(gp.find_downstream_vertices(feeder_id))
-        
-        # sym_houses = [house[1] for house in self.pgm_input["sym_load"]]
-        #print(sym_houses)
-        
-        # noeww = [i for i in sym_houses if i in feeder_nodes[16]]
-        # print(noeww)
-    
-        #get the total houses and nmr lv feeders from pgm_input
-        total_houses = len(sym_houses)
-        total_feeders = len(feeder_nodes)
-        
-        #calculation of nmr ev (electrical vehicles) per lv feeder 
-        nmr_ev_per_lv_feeder = math.floor(penetration_level * total_houses / total_feeders)
-        
-       ## list_random = random.sample()
-        
-        # Load data from JSON file
-        
-
-        #print(json_data['type']['input'])
-        # Convert JSON data to DataFrame (assuming it's a list of dictionaries)
-        #json_df = pd.DataFrame(self.pgm_input["sym_load"])
-        #print(json_df)
-        # parquet_df = pd.DataFrame(self.ev_active_profile)
-        # columns = list(parquet_df.columns.values)
-        # print(columns)
-        # random_profile = random.choices(columns, k = 1)
-        # print(random_profile)
-        
-        
-        
-        #print(parquet_df)
-        
-        #combined_df = pd.concat([parquet_df, json_df])
-        #df_concat = pd.concat([parquet_df, json_df], axis=0)
-        #print(df_concat)
-        
-        #print(new)
-
-        # Concatenate DataFrames vertically
-        #combined_df = pd.concat([self.ev_active_profile, json_df])
-        #print(self.ev_active_profile)
-        #print(combined_df)
-        #print(json_data)
         
     def N_1_calculation(self,line_id):
         
