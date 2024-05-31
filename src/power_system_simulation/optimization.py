@@ -165,7 +165,6 @@ class LV_grid:
         total_real_house_per_LV = []
         EV_houses = {}
         House_Profile = {}
-        already_used_random = []
         
         #see which feeder has which nodes
         for feeder_id in self.meta_data["lv_feeders"]:
