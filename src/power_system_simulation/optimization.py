@@ -100,7 +100,7 @@ class LV_grid:
         """
         pass
 
-    def optimal_tap_position(self,optimization_criteri: str): 
+    def optimal_tap_position(self, optimization_criterion: str) -> tuple[int, float]: 
         
         """
         Optimize the tap position of the transformer in the LV grid.
@@ -113,9 +113,63 @@ class LV_grid:
             optimization_criteria (str): Criteria for optimization (e.g., 'energy_loss', 'voltage_deviation').
 
         Returns:
-            tuple: Optimal tap position and corresponding performance metrics.
+            tuple: Optimal tap position (node id) and corresponding performance metrics.
         """
-        pass
+
+        # Problem: Want update profile for transformer, but static load profile, while PGM processing can't handle that
+        # So this method needs to duplicate the functionality from PGM processing
+        # Unless it's changed, but the two should be independent
+        node_amount = pd.DataFrame([node.tolist() for node in self.pgm_input['node']])[0].max()
+
+        # This doesnt work
+        #update_transformer_profile = pgm.initialize_array(
+        #    "update", "transformer", (node_amount - 1, 1)
+        #)
+        # Assume source is always 0 (True for both small and big data set)
+        # This is shit too
+        """
+        update_transformer_profile = np.empty((9, 4))
+        update_transformer_profile["id"] = self.pgm_input["transformer"][0][0]
+        update_transformer_profile["from_status"] = 1
+        update_transformer_profile["to_status"] =  1
+        update_transformer_profile["to_node"] = np.array(range(1, node_amount)).reshape(-1, 1)
+
+        print(update_transformer_profile)
+
+
+ time_series_mutation = {"transformer": update_transformer_profile}
+        pgm.validation.assert_valid_batch_data(
+            input_data=self.pgm_input,
+            update_data= time_series_mutation,
+            calculation_type=pgm.CalculationType.power_flow,
+        )
+       """
+        criterion = -1
+        criterion_node_id = 0
+        pgm_input = self.pgm_input
+        for x in range(1, node_amount + 1):
+            pgm_input["transformer"][0][2] = x
+            processor = pgm_p.PgmProcessor(pgm_input, self.active_load_profile, self.reactive_load_profile)
+            processor.create_update_model()
+            processor.run_batch_process()
+            [aggregate1, aggregate2] = processor.get_aggregate_results()
+            if optimization_criterion == 'energy_loss':
+                result = aggregate2["energy_loss"].sum()
+            elif optimization_criterion == 'voltage_deviation':
+                result = aggregate1['u_pu_max'].mean() + aggregate1["u_pu_min"].mean() - 2
+            else:
+                pass
+            if criterion == -1: 
+                criterion = result
+                criterion_node_id = x
+            elif result < criterion: 
+                criterion = result
+                criterion_node_id = x
+            print("Node: " + str(x) + " Best result: " + str(criterion) + " Best result node: " + str(criterion_node_id))
+
+        return tuple([criterion_node_id, criterion])
+
+        
     def EV_penetration_level(self,penetration_level : float): 
         
         """
