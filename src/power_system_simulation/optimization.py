@@ -89,7 +89,6 @@ class LV_grid:
 
         self.pgm_model = pgm.PowerGridModel(self.pgm_input)
         
-        
         """
         Validity checks need to be made to ensure that there is no overlap or mismatching between the relevant IDs and profiles. Read 'input validity check' in assignment 3 for the specific checks.
         also raise or passthrough relevant errors.
@@ -207,7 +206,41 @@ class LV_grid:
                 House_Profile[House_number] = random_profile[index_of_feeders][index_of_random_profile]
                 index_of_random_profile = index_of_random_profile+1    
             index_of_feeders = index_of_feeders+1
-        
+
+        # Assign sym_load nodes to input_network_data.json IDs
+        House_Profile_Listed = list(House_Profile.keys())
+        House_Profile_Id = dict()
+
+        for x in range(0, len(self.pgm_input['sym_load']) - 1):
+            for node_id in House_Profile_Listed:
+                node_named = self.pgm_input['sym_load'][x].tolist()[1]
+                if node_named == node_id:
+                    id = self.pgm_input['sym_load'][x].tolist()[0]
+                    House_Profile_Id[id] = House_Profile[node_named]
+
+        # Modify the active and reactive load profile according to the EV house profile
+        # Profiles are columns - 0 to 4, inclusive
+        self.active_load_profile_ev = self.active_load_profile.copy()
+        self.reactive_load_profile_ev = self.reactive_load_profile.copy()
+
+        for id1 in self.active_load_profile_ev.columns:
+            for id2 in list(House_Profile_Id.keys()):
+                if id1 == id2:
+                    self.active_load_profile_ev[id1] = self.ev_active_profile[House_Profile_Id[id2]]
+                    self.reactive_load_profile_ev[id1] = 0
+
+        # Run the batch calculation, provide True as arg to print DataFrame
+        # Otherwise, do whatever with it in this part (e.g. passthrough return)
+        self.__EV_penetration_pevel_evaluate(True)
+
+    def __EV_penetration_pevel_evaluate(self, display = False) -> list[pd.DataFrame, pd.DataFrame]:
+        processor = pgm_p.PgmProcessor(self.pgm_input, self.active_load_profile_ev, self.reactive_load_profile_ev)
+        processor.create_update_model()
+        processor.run_batch_process()
+        [aggregate1, aggregate2] = processor.get_aggregate_results()
+        if display:
+            print(aggregate1)
+            print(aggregate2)
         
     def N_1_calculation(self,line_id):
         

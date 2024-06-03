@@ -81,7 +81,7 @@ class PgmProcessor:
         self.time_series_mutation = 0
         self.output_data = 0
 
-    def create_update_model(self):
+    def create_update_model(self, use_active_load_profile=None, use_reactive_load_profile=None):
         """
         How we think this works is that from the input data (that is read in __init__), 
         you create an update profile that changes the load profiles
@@ -92,32 +92,34 @@ class PgmProcessor:
         and called between each calculation of the power flow.
         Store results in a self.[...] variable
         """
+        use_active_load_profile = use_active_load_profile or self.active_load_profile
+        use_reactive_load_profile = use_reactive_load_profile or self.reactive_load_profile
 
         # Check if time series of both active and reactive profile match
-        if not self.active_load_profile.index.equals(self.reactive_load_profile.index):
+        if not use_active_load_profile.index.equals(use_reactive_load_profile.index):
             raise ProfilesDontMatchError(0)
 
         # Check if node IDs match in both profiles
-        if not self.active_load_profile.columns.equals(self.reactive_load_profile.columns):
+        if not use_active_load_profile.columns.equals(use_reactive_load_profile.columns):
             raise ProfilesDontMatchError(1)
 
         # Check if node IDs in both profiles match the node IDs in the PGM JSON input descriptor
         if not np.array_equal(
             pd.DataFrame(self.pgm_input["sym_load"]).loc[:, "id"].to_numpy(),
-            self.active_load_profile.columns.to_numpy(),
+            use_active_load_profile.columns.to_numpy(),
         ):
             raise ProfilesDontMatchError(2)
 
         # Validated, take any
-        self.update_index_length = self.active_load_profile.index.shape[0]
-        self.update_ids = self.active_load_profile.columns.to_numpy()
+        self.update_index_length = use_active_load_profile.index.shape[0]
+        self.update_ids = use_active_load_profile.columns.to_numpy()
 
         self.update_load_profile = pgm.initialize_array(
             "update", "sym_load", (self.update_index_length, self.update_ids.shape[0])
         )
         self.update_load_profile["id"] = self.update_ids
-        self.update_load_profile["p_specified"] = self.active_load_profile
-        self.update_load_profile["q_specified"] = self.reactive_load_profile
+        self.update_load_profile["p_specified"] = use_active_load_profile
+        self.update_load_profile["q_specified"] =  use_reactive_load_profile
         self.update_load_profile["status"] = 1
 
         self.time_series_mutation = {"sym_load": self.update_load_profile}
