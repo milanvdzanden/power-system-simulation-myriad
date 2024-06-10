@@ -381,10 +381,8 @@ class GraphProcessor:
         # Loop through ALL edges (both enabled and disabled)
         for edge in self.edge_ids:
             current_edge_index = self.edge_ids.index(edge)
-
             # Check if the edge is disabled, if so, continue
-            if self.edge_enabled[current_edge_index] is False:
-
+            if self.edge_enabled[current_edge_index] == False:
                 # Variable for temporary Edge disabling and then enable the edge
                 # in question (for the example above: edge ID 7 or 8)
                 temp_edge_enabled = self.edge_enabled.copy()
