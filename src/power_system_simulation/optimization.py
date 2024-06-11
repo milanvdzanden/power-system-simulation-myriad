@@ -64,7 +64,7 @@ class GraphNotFullyConnectedError(Exception):
         """
         Exception.__init__(self, "The graph is not fully connected.")
 
-class EV_ProfilesDontMatchSym_Load(Exception):
+class EvProfilesDontMatchSymLoad(Exception):
 
     def __init__(self):
         """
@@ -73,7 +73,7 @@ class EV_ProfilesDontMatchSym_Load(Exception):
         Args:
           self: passes exception
         """
-        Exception.__init__(self, "The amount of EV_Profiles do not match the amount of Sym_Loads.")
+        Exception.__init__(self, "The amount of EVProfiles do not match the amount of SymLoads.")
         
 class GraphCycleError(Exception):
     """
@@ -113,7 +113,7 @@ class ProfilesDontMatchError(Exception):
             + str(mode),
         )
 
-class LV_Feeder_error(Exception):
+class LVFeederError(Exception):
 
     """
     Error class for the LV feeder.
@@ -127,12 +127,17 @@ class LV_Feeder_error(Exception):
           mode: error type,
             0 if the IDs are not valid
             1 if from_node is not the same node as to_node
-        """    
-pass
+        """   
+        Exception.__init__(
+        self,
+        "LVFeederError: lv feeder contains invalid line id (if 0)"
+        + "or lv feeder from_node is not the same as to_node of transformer (if 1): T"
+        + str(mode),
+    ) 
 
-class LV_Grid_one_TransformerAndSource(Exception):
+class LvGridOneTransformerAndSource(Exception):
     """
-    Error class for class LV_Grid_one_TransformerAndSource
+    Error class for class LVGridoneTransformerAndSource
     """
 
     def __init__(self, mode):
@@ -161,8 +166,6 @@ class LV_grid:
         self.ev_active_profile = ev_active_profile
         
         pgm.validation.assert_valid_input_data(self.pgm_input)
-        
-        # pgm.validation.assert_valid_input_data(self.meta_data["lv_feeders"])
 
         self.pgm_model = pgm.PowerGridModel(self.pgm_input)
         
@@ -176,9 +179,6 @@ class LV_grid:
         """
         NOTE: the funtionalities are independent from each other. For example, for optimal tap position analysis, you need to analyse the original grid with house profile, WITHOUT the EV profile.
         """
-
-    
-    def Validation_check(self):
         
         self.vertex_ids = [node[0] for node in self.pgm_input["node"]]
         self.edge_ids = [edge[0] for edge in self.pgm_input["line"]]
@@ -186,11 +186,15 @@ class LV_grid:
         self.edge_enabled = [(edge[3] == 1 and edge[4] == 1) for edge in self.pgm_input["line"]]
         self.source_vertex_id = self.pgm_input["source"][0][1]
         
-        
         self.graph_enabled_edges = nx.Graph()
         self.graph_enabled_edges_ids = []
         self.graph_enabled_edges.add_nodes_from(self.vertex_ids)
         edge_vertex_id_pairs_enabled = []
+        
+        # Pretend all transformers are short circuits, so that GraphProcessor can use it
+        for transformer in self.pgm_input["transformer"]:
+            edge_vertex_id_pairs_enabled.append((transformer[1], transformer[2]))
+            self.graph_enabled_edges_ids.append(transformer[0])
 
         # Find the list of enabled edges
         for x in range(0, len(self.edge_vertex_id_pairs)):
@@ -203,7 +207,12 @@ class LV_grid:
         self.graph_all_edges.add_nodes_from(self.vertex_ids)
         self.graph_all_edges.add_edges_from(self.edge_vertex_id_pairs)
         
-
+        print(len(self.pgm_input["source"]))
+        print(len(self.pgm_input["transformer"]))
+        #Check if lv grid has one source and one transformer
+        if not len(self.pgm_input["source"]) == len(self.pgm_input["transformer"]): 
+            raise LvGridOneTransformerAndSource()
+        
         # Check: graph - is fully connected?
         if not nx.is_connected(self.graph_all_edges):
             raise GraphNotFullyConnectedError()
@@ -236,15 +245,13 @@ class LV_grid:
         
         if not EV_profiles_initial.equals(len(self.pgm_input["sym_load"])):
             
-            raise EV_ProfilesDontMatchSym_Load()
+            raise EvProfilesDontMatchSymLoad()
         
-        if not len(self.pgm_input["source"]).equals(self.pgm_input["tranformer"] and 1):
-            
-            raise LV_Grid_one_TransformerAndSource()
+        
         
         
 
-        pass
+        
 
     def optimal_tap_position(self,optimization_criteri: str): 
         
@@ -315,8 +322,15 @@ class LV_grid:
         for feeder_id in self.meta_data["lv_feeders"]:
             feeders.append(feeder_id)
             feeder_nodes[feeder_id] = gp.find_downstream_vertices(feeder_id)
-            if self.pgm_input["line"]["id"] == feeder_id and self.pgm_input["line"]["from_node"].equals(self.pgm_input["transformer"]["to_node"]):
-                print(feeder_id)
+            #check if feeder ids are valid
+            if feeder_id not in self.pgm_input["line"]["id"]: 
+                raise LVFeederError(0)
+            #check if from_node from feeders are same as to_node from transformer
+            feeder_data = next((item for i, item in enumerate(self.pgm_input['line']) if item['id'] == feeder_id), None)
+            if not feeder_data["from_node"] == self.pgm_input["transformer"]["to_node"] :
+                raise LVFeederError(1)
+            
+            
 
             
                 

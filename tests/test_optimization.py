@@ -2,6 +2,7 @@ import os
 import sys
 import pytest
 import pandas as pd
+import numpy as np
 
 src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tests/tests_data/A3"))
 sys.path.append(src_dir)
@@ -12,8 +13,16 @@ import power_system_simulation.optimization as psso
 from power_grid_model.utils import json_deserialize, json_serialize
 
 import json
+import copy as copy
+
+meta_data = {}
+network_data = {}
+active_profile = {}
+reactive_profile = {}
+ev_active_profile = {}
 
 def test_optimization():
+    global network_data, meta_data, active_profile, reactive_profile, ev_active_profile
     dir_meta_data_json = src_dir + "/meta_data.json"
     dir_network_json = src_dir + "/input_network_data.json"
     dir_active_profile = src_dir + "/active_power_profile.parquet"
@@ -60,7 +69,22 @@ def test_optimization():
     p.N_1_calculation(18)
     p.EV_penetration_level(0.8)
 
-test_optimization()    
+def test_errors():
+    global network_data, meta_data, active_profile, reactive_profile, ev_active_profile
+    #The LV grid has exactly one transformer, and one source
+    test_2_transformer = copy.deepcopy(network_data)
+    transformer2 = copy.deepcopy(test_2_transformer["transformer"][0])
+    
+    transformer2["id"] = 25
+    
+    test_2_transformer["transformer"] = np.append(test_2_transformer["transformer"],transformer2)
+    print(test_2_transformer["transformer"])
+    # with pytest.raises(psso.LvGridOneTransformerAndSource) as excinfo:
+    #     psso.LV_grid(test_2_transformer, active_profile, reactive_profile, ev_active_profile, meta_data)
 
+    
+  
+test_optimization()    
+test_errors()  
     
     
