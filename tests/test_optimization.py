@@ -71,19 +71,61 @@ def test_optimization():
 
 def test_errors():
     global network_data, meta_data, active_profile, reactive_profile, ev_active_profile
-    #The LV grid has exactly one transformer, and one source
+    
+    #2 The LV grid has exactly one transformer, and one source
+    #2.1 extra transformer
     test_2_transformer = copy.deepcopy(network_data)
     transformer2 = copy.deepcopy(test_2_transformer["transformer"][0])
-    
     transformer2["id"] = 25
-    
     test_2_transformer["transformer"] = np.append(test_2_transformer["transformer"],transformer2)
-    print(test_2_transformer["transformer"])
-    # with pytest.raises(psso.LvGridOneTransformerAndSource) as excinfo:
-    #     psso.LV_grid(test_2_transformer, active_profile, reactive_profile, ev_active_profile, meta_data)
-
+    with pytest.raises(psso.LvGridOneTransformerAndSource) as excinfo:
+        psso.LV_grid(
+            test_2_transformer, active_profile, reactive_profile, ev_active_profile, meta_data
+        )
+    #2.2 extra source
+    test_2_source = copy.deepcopy(network_data)
+    source2 = copy.deepcopy(test_2_source["source"][0])
+    source2["id"] = 25
+    test_2_source["source"] = np.append(test_2_source["source"],source2)
+    with pytest.raises(psso.LvGridOneTransformerAndSource) as excinfo:
+        psso.LV_grid(
+            test_2_source, active_profile, reactive_profile, ev_active_profile, meta_data
+        )
+    #3 All IDs in the LV Feeder IDs are valid line IDs.
+    test_valid_ids = copy.deepcopy(network_data)
+    test_valid_ids["line"]["id"][0] = 25
     
-  
+    with pytest.raises(psso.LVFeederError, match=r".*T0") as excinfo:
+        psso.LV_grid(
+            test_valid_ids, active_profile, reactive_profile, ev_active_profile, meta_data
+        )
+    #4 All the lines in the LV Feeder IDs have the from_node the same as the to_node of the transformer.
+    test_same_nodes = copy.deepcopy(network_data)
+    test_same_nodes["transformer"]["to_node"] = 2
+    
+    with pytest.raises(psso.LVFeederError, match=r".*T1") as excinfo:
+        psso.LV_grid(
+            test_same_nodes, active_profile, reactive_profile, ev_active_profile, meta_data
+        )
+    #5 The grid is fully connected in the initial state. 
+    # test_fully_connected = copy.deepcopy(network_data)
+    # test_fully_connected["line"]["to_status"][1] = 0
+    
+    # print(test_fully_connected["line"])
+    # with pytest.raises(psso.GraphNotFullyConnectedError) as excinfo:
+    #     psso.LV_grid(
+    #         test_fully_connected, active_profile, reactive_profile, ev_active_profile, meta_data
+    #     )
+    #6 The grid has no cycles in the initial state.
+    test_cycles = copy.deepcopy(network_data)
+    test_cycles["line"]["to_status"][8] = 1
+    
+    with pytest.raises(psso.GraphCycleError) as excinfo:
+        psso.LV_grid(
+            test_cycles, active_profile, reactive_profile, ev_active_profile, meta_data
+        )
+    #7 The timestamps are matching between the active load profile, reactive load profile, and EV charging profile.
+    
 test_optimization()    
 test_errors()  
     

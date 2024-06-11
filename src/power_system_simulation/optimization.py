@@ -18,7 +18,10 @@ import numpy as np
 import pandas as pd
 import power_grid_model as pgm
 from power_grid_model.utils import json_deserialize, json_serialize
+
+#1 The LV grid should be a valid PGM input data.
 from power_grid_model.validation import ValidationException
+
 from power_grid_model import *
 
 from power_grid_model import LoadGenType
@@ -28,11 +31,23 @@ from power_grid_model import initialize_array
 import power_system_simulation.graph_processing as pss
 import power_system_simulation.pgm_processing as pgm_p
 
-class IDNotFoundError(Exception):
+#2 The LV grid has exactly one transformer, and one source.
+class LvGridOneTransformerAndSource(Exception):
     """
-    Error class for IDNotFoundError
+    Error class for class LVGridoneTransformerAndSource
     """
 
+    def __init__(self):
+        
+        Exception.__init__(self, "The LV_Grid does not have exactly one source and one tranformer.")
+
+#3 All IDs in the LV Feeder IDs are valid line IDs.
+#4 All the lines in the LV Feeder IDs have the from_node the same as the to_node of the transformer.
+class LVFeederError(Exception):
+
+    """
+    Error class for the LV feeder.
+    """
     def __init__(self, mode):
         """
         Prints the exception message using the standard exception class.
@@ -40,16 +55,17 @@ class IDNotFoundError(Exception):
         Args:
           self: passes exception
           mode: error type,
-            0 if vertex pair does not exist in vertex_ids
-            1 if source_vertex_id does not exist in vertex_ids
-        """
+            0 if the IDs are not valid
+            1 if from_node is not the same node as to_node
+        """   
         Exception.__init__(
-            self,
-            "IDNotFoundError: vertex pair does not exist in vertex_ids (if 0)"
-            + "or source_vertex_id does not exist in vertex_ids (if 1): T"
-            + str(mode),
-        )
-        
+        self,
+        "LVFeederError: lv feeder contains invalid line id (if 0)"
+        + "or lv feeder from_node is not the same as to_node of transformer (if 1): T"
+        + str(mode),
+    ) 
+
+#5 The grid is fully connected in the initial state.
 class GraphNotFullyConnectedError(Exception):
     """
     Error class for GraphNotFullyConnectedError
@@ -64,17 +80,7 @@ class GraphNotFullyConnectedError(Exception):
         """
         Exception.__init__(self, "The graph is not fully connected.")
 
-class EvProfilesDontMatchSymLoad(Exception):
-
-    def __init__(self):
-        """
-        Prints the exception message using the standard exception class.
-
-        Args:
-          self: passes exception
-        """
-        Exception.__init__(self, "The amount of EVProfiles do not match the amount of SymLoads.")
-        
+#6 The grid has no cycles in the initial state.
 class GraphCycleError(Exception):
     """
     Error class for GraphCycleError
@@ -89,6 +95,9 @@ class GraphCycleError(Exception):
         """
         Exception.__init__(self, "The graph contains cycles.")
 
+#7 The timestamps are matching between the active load profile, reactive load profile, and EV charging profile.
+#8 The IDs in active load profile and reactive load profile are matching.
+#9 The IDs in active load profile and reactive load profile are valid IDs of sym_load.      
 class ProfilesDontMatchError(Exception):
     """
     Error class for class ProfilesDontMatchError
@@ -112,38 +121,19 @@ class ProfilesDontMatchError(Exception):
             in either profiles do not match the node IDs in the PGM JSON descriptor (if 2)"""
             + str(mode),
         )
+        
+#10 The number of EV charging profile is at least the same as the number of sym_load.
+class EvProfilesDontMatchSymLoad(Exception):
 
-class LVFeederError(Exception):
-
-    """
-    Error class for the LV feeder.
-    """
-    def __init__(self, mode):
+    def __init__(self):
         """
         Prints the exception message using the standard exception class.
 
         Args:
           self: passes exception
-          mode: error type,
-            0 if the IDs are not valid
-            1 if from_node is not the same node as to_node
-        """   
-        Exception.__init__(
-        self,
-        "LVFeederError: lv feeder contains invalid line id (if 0)"
-        + "or lv feeder from_node is not the same as to_node of transformer (if 1): T"
-        + str(mode),
-    ) 
-
-class LvGridOneTransformerAndSource(Exception):
-    """
-    Error class for class LVGridoneTransformerAndSource
-    """
-
-    def __init__(self, mode):
+        """
+        Exception.__init__(self, "The amount of EVProfiles do not match the amount of SymLoads.")
         
-        Exception.__init__(self, "The LV_Grid does not have exactly one source and one tranformer.")
-
 class LV_grid:
 
     """
@@ -151,108 +141,121 @@ class LV_grid:
     """
     
     def __init__(self, network_data: str, active_profile: str, reactive_profile: str, ev_active_profile: str, meta_data: str):   
-         
-        """
-        Serializing the json file.
-        """ 
+        
         self.meta_data = meta_data
-        
         self.pgm_input = network_data
-        # Read active and reactive load profile from parquet file
         self.active_load_profile = active_profile
-        
         self.reactive_load_profile = reactive_profile
-        
         self.ev_active_profile = ev_active_profile
         
+        #1 The LV grid should be a valid PGM input data.
         pgm.validation.assert_valid_input_data(self.pgm_input)
 
+        #Create powergrid model
         self.pgm_model = pgm.PowerGridModel(self.pgm_input)
-        
         
         """
         Validity checks need to be made to ensure that there is no overlap or mismatching between the relevant IDs and profiles. Read 'input validity check' in assignment 3 for the specific checks.
         also raise or passthrough relevant errors.
         """
+        #2 ---------------------------------------------------------------------------------------------------------------   
+        #Check if lv grid has one source and one transformer     
+        if not len(self.pgm_input["source"]) == 1: 
+            raise LvGridOneTransformerAndSource()
+        if not len(self.pgm_input["transformer"]) == 1:
+            raise LvGridOneTransformerAndSource()
+        # ---------------------------------------------------------------------------------------------------------------
         
+        for feeder_id in self.meta_data["lv_feeders"]:
+            #3 ---------------------------------------------------------------------------------------------------------------
+            #check if feeder ids are valid           
+            if feeder_id not in self.pgm_input["line"]["id"]: 
+                raise LVFeederError(0)
+            # ---------------------------------------------------------------------------------------------------------------
+            
+            #4 ---------------------------------------------------------------------------------------------------------------
+            #check if from_node from feeders are same as to_node from transformer
+            feeder_data = next((item for i, item in enumerate(self.pgm_input['line']) if item['id'] == feeder_id), None)
+            if not feeder_data["from_node"] == self.pgm_input["transformer"]["to_node"] :
+                raise LVFeederError(1)
+            # ---------------------------------------------------------------------------------------------------------------
         
-        """
-        NOTE: the funtionalities are independent from each other. For example, for optimal tap position analysis, you need to analyse the original grid with house profile, WITHOUT the EV profile.
-        """
-        
-        self.vertex_ids = [node[0] for node in self.pgm_input["node"]]
-        self.edge_ids = [edge[0] for edge in self.pgm_input["line"]]
-        self.edge_vertex_id_pairs = [(edge[1], edge[2]) for edge in self.pgm_input["line"]]
-        self.edge_enabled = [(edge[3] == 1 and edge[4] == 1) for edge in self.pgm_input["line"]]
-        self.source_vertex_id = self.pgm_input["source"][0][1]
-        
-        self.graph_enabled_edges = nx.Graph()
-        self.graph_enabled_edges_ids = []
-        self.graph_enabled_edges.add_nodes_from(self.vertex_ids)
-        edge_vertex_id_pairs_enabled = []
+        # ---------------------------------------------------------------------------------------------------------------
+                    #Convert input to use graph processing for validity checks
+        vertex_ids = [node[0] for node in self.pgm_input["node"]]
+        edge_ids = [edge[0] for edge in self.pgm_input["line"]]
+        edge_vertex_id_pairs = [(edge[1], edge[2]) for edge in self.pgm_input["line"]]
+        edge_enabled = [(edge[3] == 1 and edge[4] == 1) for edge in self.pgm_input["line"]]
+        source_vertex_id = self.pgm_input["source"][0][1]
         
         # Pretend all transformers are short circuits, so that GraphProcessor can use it
         for transformer in self.pgm_input["transformer"]:
-            edge_vertex_id_pairs_enabled.append((transformer[1], transformer[2]))
-            self.graph_enabled_edges_ids.append(transformer[0])
-
-        # Find the list of enabled edges
-        for x in range(0, len(self.edge_vertex_id_pairs)):
-            if self.edge_enabled[x]:
-                self.graph_enabled_edges_ids.append(self.edge_ids[x])
-                edge_vertex_id_pairs_enabled.append(self.edge_vertex_id_pairs[x])
-
-        self.graph_enabled_edges.add_edges_from(edge_vertex_id_pairs_enabled)
-        self.graph_all_edges = nx.Graph()
-        self.graph_all_edges.add_nodes_from(self.vertex_ids)
-        self.graph_all_edges.add_edges_from(self.edge_vertex_id_pairs)
+            edge_vertex_id_pairs.append((transformer[1], transformer[2]))
+            edge_enabled.append(True)
+            edge_ids.append(transformer[0])
+        # ---------------------------------------------------------------------------------------------------------------
         
-        print(len(self.pgm_input["source"]))
-        print(len(self.pgm_input["transformer"]))
-        #Check if lv grid has one source and one transformer
-        if not len(self.pgm_input["source"]) == len(self.pgm_input["transformer"]): 
-            raise LvGridOneTransformerAndSource()
+        #5 ---------------------------------------------------------------------------------------------------------------
+        graph_all_edges = nx.Graph()
+        graph_all_edges.add_nodes_from(vertex_ids)
+        graph_all_edges.add_edges_from(edge_vertex_id_pairs)
         
         # Check: graph - is fully connected?
-        if not nx.is_connected(self.graph_all_edges):
+        if not nx.is_connected(graph_all_edges):
             raise GraphNotFullyConnectedError()
+        # ---------------------------------------------------------------------------------------------------------------
+        
+        #6 --------------------------------------------------------------------------------------------------------------- 
+        graph_enabled_edges = nx.Graph()
+        graph_enabled_edges_ids = []
+        graph_enabled_edges.add_nodes_from(vertex_ids)
+        edge_vertex_id_pairs_enabled = []
+        
+        # Find the list of enabled edges
+        for x in range(0, len(edge_vertex_id_pairs)):
+            if edge_enabled[x]:
+                graph_enabled_edges_ids.append(edge_ids[x])
+                edge_vertex_id_pairs_enabled.append(edge_vertex_id_pairs[x])
 
+        graph_enabled_edges.add_edges_from(edge_vertex_id_pairs_enabled)
+        
         # Check: graph - has no cycles?
         try:
-            nx.find_cycle(self.graph_enabled_edges)
+            nx.find_cycle(graph_enabled_edges)
         except nx.NetworkXNoCycle:
             pass
         else:
             raise GraphCycleError()
+        # ---------------------------------------------------------------------------------------------------------------
         
+        #7 ---------------------------------------------------------------------------------------------------------------
         # Check if time series of both active and reactive profile match
-        if not self.active_load_profile.index.equals(self.reactive_load_profile.index and self.ev_active_profile.index):
+        if not self.active_load_profile.index.equals(self.reactive_load_profile.index) and self.active_load_profile.index.equals(self.ev_active_profile.index) and self.reactive_load_profile.index.equals(self.ev_active_profile.index):
             raise ProfilesDontMatchError(0)
-
+        # ---------------------------------------------------------------------------------------------------------------
+        
+        #8 ---------------------------------------------------------------------------------------------------------------
         # Check if node IDs match in both profiles
         if not self.active_load_profile.columns.equals(self.reactive_load_profile.columns):
             raise ProfilesDontMatchError(1)
-
+        # ---------------------------------------------------------------------------------------------------------------
+        
+        #9 ---------------------------------------------------------------------------------------------------------------
         # Check if node IDs in both profiles match the node IDs in the PGM JSON input descriptor
         if not np.array_equal(
             pd.DataFrame(self.pgm_input["sym_load"]).loc[:, "id"].to_numpy(),
             self.active_load_profile.columns.to_numpy(),
         ):
             raise ProfilesDontMatchError(2)
+        #---------------------------------------------------------------------------------------------------------------
         
+        #10 ---------------------------------------------------------------------------------------------------------------
         parquet_df = pd.DataFrame(self.ev_active_profile)
-        EV_profiles_initial = len(list(parquet_df.columns.values))
         
-        if not EV_profiles_initial.equals(len(self.pgm_input["sym_load"])):
-            
+        if not len(list(parquet_df.columns.values)) == (len(self.pgm_input["sym_load"])):
             raise EvProfilesDontMatchSymLoad()
+        # ---------------------------------------------------------------------------------------------------------------
         
-        
-        
-        
-
-        
-
     def optimal_tap_position(self,optimization_criteri: str): 
         
         """
@@ -269,6 +272,7 @@ class LV_grid:
             tuple: Optimal tap position and corresponding performance metrics.
         """
         pass
+    
     def EV_penetration_level(self,penetration_level : float): 
         
         """
@@ -322,17 +326,6 @@ class LV_grid:
         for feeder_id in self.meta_data["lv_feeders"]:
             feeders.append(feeder_id)
             feeder_nodes[feeder_id] = gp.find_downstream_vertices(feeder_id)
-            #check if feeder ids are valid
-            if feeder_id not in self.pgm_input["line"]["id"]: 
-                raise LVFeederError(0)
-            #check if from_node from feeders are same as to_node from transformer
-            feeder_data = next((item for i, item in enumerate(self.pgm_input['line']) if item['id'] == feeder_id), None)
-            if not feeder_data["from_node"] == self.pgm_input["transformer"]["to_node"] :
-                raise LVFeederError(1)
-            
-            
-
-            
                 
         #get the total houses and nmr lv feeders from pgm_input
         sym_houses = [house[1] for house in self.pgm_input["sym_load"]]
