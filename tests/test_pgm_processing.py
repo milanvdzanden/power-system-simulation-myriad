@@ -32,6 +32,28 @@ def test_pgm_processing():
     p.run_batch_process()
     aggregate_results = p.get_aggregate_results()
 
+    # Change a timestamp in active profile to an incorrect one and check for error
+    active_load_profile_wrong = active_load_profile.copy()
+    active_load_profile_wrong.rename(index={active_load_profile.index[0]:pd.to_datetime('today').normalize()}, inplace=True)
+    with pytest.raises(pgm_p.ProfilesDontMatchError, match=r".*T0") as excinfo:
+        p = pgm_p.PgmProcessor(network_data, active_load_profile_wrong, reactive_load_profile)
+        p.create_update_model()
+
+    # Change a node ID in active profile to an incorrect one and check for error
+    active_load_profile_wrong = active_load_profile.copy()
+    active_load_profile_wrong.rename(columns={active_load_profile.columns[0]: 1234567890}, inplace=True)
+    with pytest.raises(pgm_p.ProfilesDontMatchError, match=r".*T1") as excinfo:
+        p = pgm_p.PgmProcessor(network_data, active_load_profile_wrong, reactive_load_profile)
+        p.create_update_model()
+
+    # Change a node ID in the network description to an incorrect one (different than reactive/active profile) and check for error
+    network_data_wrong = network_data.copy()
+    network_data_wrong['sym_load'][0][0] = 1234567890
+    with pytest.raises(pgm_p.ProfilesDontMatchError, match=r".*T2") as excinfo:
+        p = pgm_p.PgmProcessor(network_data_wrong, active_load_profile, reactive_load_profile)
+        p.create_update_model()
+
+    # Test if pre-calculated output data matches the aggregated output
     dir_out_per_line = src_dir + "/output_table_row_per_line.parquet"
     dir_out_per_timestamp = src_dir + "/output_table_row_per_timestamp.parquet"
 
@@ -44,12 +66,15 @@ def test_pgm_processing():
         == True
     )
 
-    # Using active profile data from A3 as "wrong" input for this network
-    dir_active_profile_wrong = src_dir + "/active_power_profile_wrong.parquet"
-    active_load_profile_wrong = pd.read_parquet(dir_active_profile_wrong)
-    with pytest.raises(pgm_p.PgmProcessor.ProfilesDontMatchError(0)) as excinfo:
-        p = pgm_p.PgmProcessor(network_data, active_load_profile_wrong, reactive_load_profile)
-        p.create_update_model()
-
+    # Change the output data and check if the error is detected
+    with pytest.raises(AssertionError) as excinfo:
+        assert (
+            p.compare_to_expected(
+                aggregate_results,
+                pd.read_parquet(dir_out_per_line),
+                pd.read_parquet(dir_out_per_line),
+            )
+            == True
+        )
 
 test_pgm_processing()

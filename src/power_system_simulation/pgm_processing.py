@@ -38,7 +38,7 @@ class ProfilesDontMatchError(Exception):
             self,
             """ProfilesDontMatchError: The time stamps of the profiles do not match (if 0) or 
             the node IDs do not match eatch other in the profiles (if 1) or the the node IDs 
-            in either profiles do not match the node IDs in the PGM JSON descriptor (if 2)"""
+            in either profiles do not match the node IDs in the PGM JSON descriptor (if 2): T"""
             + str(mode),
         )
 
