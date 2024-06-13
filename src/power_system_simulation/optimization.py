@@ -148,6 +148,7 @@ class LV_grid:
         self.reactive_load_profile = reactive_profile
         self.ev_active_profile = ev_active_profile
         
+        
         #1 The LV grid should be a valid PGM input data.
         pgm.validation.assert_valid_input_data(self.pgm_input)
 
@@ -197,8 +198,14 @@ class LV_grid:
         
         #5 ---------------------------------------------------------------------------------------------------------------
         graph_all_edges = nx.Graph()
-        graph_all_edges.add_nodes_from(vertex_ids)
-        graph_all_edges.add_edges_from(edge_vertex_id_pairs)
+        for node in self.pgm_input["node"]:
+            graph_all_edges.add_node(node["id"])
+        for line in self.pgm_input["line"]:
+            if line['from_status'] == 1 and line['to_status'] == 1:
+                graph_all_edges.add_edge(line["from_node"], line["to_node"])
+        for transformer in self.pgm_input["transformer"]:
+            if transformer['from_status'] == 1 and transformer['to_status'] == 1:
+                graph_all_edges.add_edge(transformer["from_node"], transformer["to_node"])   
         
         # Check: graph - is fully connected?
         if not nx.is_connected(graph_all_edges):

@@ -75,6 +75,7 @@ def test_errors():
     #2 The LV grid has exactly one transformer, and one source
     #2.1 extra transformer
     test_2_transformer = copy.deepcopy(network_data)
+    
     transformer2 = copy.deepcopy(test_2_transformer["transformer"][0])
     transformer2["id"] = 25
     test_2_transformer["transformer"] = np.append(test_2_transformer["transformer"],transformer2)
@@ -108,14 +109,14 @@ def test_errors():
             test_same_nodes, active_profile, reactive_profile, ev_active_profile, meta_data
         )
     #5 The grid is fully connected in the initial state. 
-    # test_fully_connected = copy.deepcopy(network_data)
-    # test_fully_connected["line"]["to_status"][1] = 0
+    test_fully_connected = copy.deepcopy(network_data)
+    test_fully_connected["line"]["to_status"][4] = 0
+    test_fully_connected["line"]["from_status"][5] = 0
     
-    # print(test_fully_connected["line"])
-    # with pytest.raises(psso.GraphNotFullyConnectedError) as excinfo:
-    #     psso.LV_grid(
-    #         test_fully_connected, active_profile, reactive_profile, ev_active_profile, meta_data
-    #     )
+    with pytest.raises(psso.GraphNotFullyConnectedError) as excinfo:
+        psso.LV_grid(
+            test_fully_connected, active_profile, reactive_profile, ev_active_profile, meta_data
+        )
     #6 The grid has no cycles in the initial state.
     test_cycles = copy.deepcopy(network_data)
     test_cycles["line"]["to_status"][8] = 1
@@ -141,6 +142,8 @@ def test_errors():
     #     psso.LV_grid(
     #         network_data, test_load_ids, reactive_profile, ev_active_profile, meta_data
     #     )
+    
+    
         
 test_optimization()    
 test_errors()  
