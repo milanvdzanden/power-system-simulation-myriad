@@ -274,3 +274,83 @@ class PgmProcessor:
         except:
             return False
         return False
+    
+    def __to_networkx_for_drawing(network_data):
+        g = nx.Graph()
+        # Add all nodes, based on "id".
+        for node in network_data['node']:
+            g.add_node(node[0], type='default')
+        # Add all edges/lines, based on "from_node", "to_node".
+        for line in network_data['line']:
+            g.add_edge(line[1], line[2], id=line[0], type='default')
+            if (line[3] == 0 or line[4] == 0):
+            g.edges[line[1], line[2]].update({'enabled': False})
+            else:
+            g.edges[line[1], line[2]].update({'enabled': True})
+        # Add transformer lines (these are separate in the data from the lines)
+        for transformer in network_data['transformer']:
+            g.add_edge(transformer[1], transformer[2], id=transformer[0], type='transformer')
+
+        # Classify nodes based on source or load
+        for sym_load in network_data['sym_load']:
+            g.nodes[sym_load[1]].update({'type': 'sym_load'})
+        for source in network_data['source']:
+            g.nodes[source[1]].update({'type': 'source'})
+
+        return g
+
+    def __draw_update_per_timestamp(frame_num, g, aggregate_table, ax):
+        ax.clear()
+
+        # Local parameters (hard-coded)
+        draw_node_size = 100
+        draw_node_connecting_size = 66
+        draw_line_width = 2.1
+        draw_line_disabled_width = 0.7
+
+        # Use planar node layout for all nodes to avoid edge intersections
+        draw_pos = nx.planar_layout(g)
+
+        # Draw generic (connection) nodes
+        draw_node_list = [key for key, value in nx.get_node_attributes(g, 'type').items() if value == 'default']
+        nx.draw_networkx_nodes(g, ax=ax, nodelist=draw_node_list, pos=draw_pos, node_size = draw_node_connecting_size)
+
+        # Draw load nodes
+        draw_node_list = [key for key, value in nx.get_node_attributes(g, 'type').items() if value == 'sym_load']
+        nx.draw_networkx_nodes(g, ax=ax, nodelist=draw_node_list, pos=draw_pos, node_size = draw_node_size, node_shape = 'x')
+
+        # Draw source nodes
+        draw_node_list = [key for key, value in nx.get_node_attributes(g, 'type').items() if value == 'source']
+        nx.draw_networkx_nodes(g, ax=ax, nodelist=draw_node_list, pos=draw_pos, node_size = draw_node_size, node_shape = 'D')
+
+        # Draw generic (connection) lines
+        draw_edge_list = [key for key, value in nx.get_edge_attributes(g, 'type').items() if value == 'default']
+        # Pick enabled/disabled edges
+        draw_edge_enabled_list = [key for key, value in nx.get_edge_attributes(g, 'enabled').items() if value == True]
+        nx.draw_networkx_edges(g, ax=ax, edgelist=draw_edge_enabled_list, pos=draw_pos, node_size = draw_node_connecting_size, width = draw_line_width)
+        draw_edge_enabled_list = [key for key, value in nx.get_edge_attributes(g, 'enabled').items() if value == False]
+        nx.draw_networkx_edges(g, ax=ax, edgelist=draw_edge_enabled_list, pos=draw_pos, node_size = draw_node_connecting_size, width = draw_line_disabled_width, edge_color='grey')
+        
+        # Draw transformer lines
+        draw_edge_list = [key for key, value in nx.get_edge_attributes(g, 'type').items() if value == 'transformer']
+        nx.draw_networkx_edges(g, ax=ax, edgelist=draw_edge_list, pos=draw_pos, node_size = draw_node_size, arrows=True, arrowstyle='|-|', style='dashed', width=draw_line_width)
+
+    # add self later (draw_aggregate_result(self, ...))
+    def draw_aggregate_result(network_data, aggregate_table: pd.DataFrame, type: str):
+        figsize_x = 6
+        figsize_y = 4
+        # In ms
+        anim_interval = 1000
+        g = __to_networkx_for_drawing(network_data)
+        match type:
+            case 'per_line':
+            print(aggregate_table)
+            case 'per_timestamp':
+            fig, ax = plt.subplots(figsize=(figsize_x,figsize_y))
+            #ani = anim.FuncAnimation(fig, partial(__draw_update_per_timestamp, g=g, aggregate_table=aggregate_table, ax=ax), frames=aggregate_table.index.size, interval=anim_interval, repeat=False)
+            __draw_update_per_timestamp(1, g, aggregate_table, ax)
+            plt.show()
+            case 'n-1':
+            print('c')
+            case _:
+            raise ValueError()

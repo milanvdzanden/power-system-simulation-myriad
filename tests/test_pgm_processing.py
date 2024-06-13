@@ -13,7 +13,6 @@ from power_grid_model.utils import json_deserialize, json_serialize
 
 import power_system_simulation.pgm_processing as pgm_p
 
-
 def test_pgm_processing():
     dir_network_json = src_dir + "/input_network_data.json"
     dir_active_profile = src_dir + "/active_power_profile.parquet"
@@ -31,6 +30,10 @@ def test_pgm_processing():
     p.create_update_model()
     p.run_batch_process()
     aggregate_results = p.get_aggregate_results()
+    
+    # Save aggregate results (for drawing tests in external notebook as repository is not completed yet and cannot be used directly as-is)
+    aggregate_results[0].to_parquet(src_dir + "/calculated_output_per_timestamp.parquet")
+    aggregate_results[1].to_parquet(src_dir + "/calculated_output_per_line.parquet")
 
     # Change a timestamp in active profile to an incorrect one and check for error
     active_load_profile_wrong = active_load_profile.copy()
