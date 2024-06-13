@@ -143,7 +143,28 @@ def test_errors():
     #         network_data, test_load_ids, reactive_profile, ev_active_profile, meta_data
     #     )
     
+    #9 The IDs in active load profile and reactive load profile are valid IDs of sym_load.
+    test_sym_load = copy.deepcopy(network_data)
+    test_sym_load["sym_load"]["id"][0] = 28
     
+    
+    with pytest.raises(psso.ProfilesDontMatchError, match=r".*T2") as excinfo:
+        psso.LV_grid(
+            test_sym_load, active_profile, reactive_profile, ev_active_profile, meta_data
+        )
+        
+    #10 The number of EV charging profile is at least the same as the number of sym_load.
+     
+    test_number_EV = copy.deepcopy(ev_active_profile)
+    new_column = copy.deepcopy(test_number_EV[1])
+    test_number_EV[4] = new_column
+    
+    
+    with pytest.raises(psso.EvProfilesDontMatchSymLoad) as excinfo:
+        psso.LV_grid(
+            network_data, active_profile, reactive_profile, test_number_EV, meta_data
+        )
+      
         
 test_optimization()    
 test_errors()  

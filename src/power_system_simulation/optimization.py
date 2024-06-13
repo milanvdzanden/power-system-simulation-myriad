@@ -97,7 +97,10 @@ class GraphCycleError(Exception):
 
 #7 The timestamps are matching between the active load profile, reactive load profile, and EV charging profile.
 #8 The IDs in active load profile and reactive load profile are matching.
-#9 The IDs in active load profile and reactive load profile are valid IDs of sym_load.      
+
+#9 The IDs in active load profile and reactive load profile are valid IDs of sym_load.
+
+      
 class ProfilesDontMatchError(Exception):
     """
     Error class for class ProfilesDontMatchError
@@ -110,15 +113,15 @@ class ProfilesDontMatchError(Exception):
         Args:
           self: passes exception
           mode: error type,
-            0 if the time stamps (time index) do not match
+            0 if the node ids in either profiles do not match the node ids in the pgm descriptor
             1 if the node ids do not match each other in the profiles
-            2 if the node ids in either profiles do not match the node ids in the pgm descriptor
+            2 if the time stamps (time index) do not match 
         """
         Exception.__init__(
             self,
-            """ProfilesDontMatchError: The time stamps of the profiles do not match (if 0) or 
-            the node IDs do not match eatch other in the profiles (if 1) or the the node IDs 
-            in either profiles do not match the node IDs in the PGM JSON descriptor (if 2)"""
+            "ProfilesDontMatchError: The time stamps of the profiles do not match (if 0)"
+            +"or the node IDs do not match eatch other in the profiles (if 1)" 
+            + "or the the node IDs in either profiles do not match the node IDs in the PGM JSON descriptor (if 2): T"
             + str(mode),
         )
         
@@ -263,9 +266,8 @@ class LV_grid:
         #---------------------------------------------------------------------------------------------------------------
         
         #10 ---------------------------------------------------------------------------------------------------------------
-        parquet_df = pd.DataFrame(self.ev_active_profile)
         
-        if not len(list(parquet_df.columns.values)) == (len(self.pgm_input["sym_load"])):
+        if not len(list(self.ev_active_profile.columns.values)) == (len(self.pgm_input["sym_load"])):
             raise EvProfilesDontMatchSymLoad()
         # ---------------------------------------------------------------------------------------------------------------
         
