@@ -230,11 +230,17 @@ class LV_grid:
         
         #7 ---------------------------------------------------------------------------------------------------------------
         # Check if time series of both active and reactive profile match
-        if not self.active_load_profile.index.equals(self.reactive_load_profile.index) and self.active_load_profile.index.equals(self.ev_active_profile.index) and self.reactive_load_profile.index.equals(self.ev_active_profile.index):
+        # print(self.active_load_profile.index)
+        # print("-----------------------------")
+        # print(self.reactive_load_profile.index)
+        if not self.active_load_profile.index.equals(self.reactive_load_profile.index): #and self.active_load_profile.index.equals(self.ev_active_profile.index) and self.reactive_load_profile.index.equals(self.ev_active_profile.index):
             raise ProfilesDontMatchError(0)
         # ---------------------------------------------------------------------------------------------------------------
         
         #8 ---------------------------------------------------------------------------------------------------------------
+        # print(self.active_load_profile.columns)
+        # print("-----------------------------")
+        # print(self.reactive_load_profile.columns)
         # Check if node IDs match in both profiles
         if not self.active_load_profile.columns.equals(self.reactive_load_profile.columns):
             raise ProfilesDontMatchError(1)
