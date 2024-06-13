@@ -1,39 +1,46 @@
 """
 Building a package with low voltage grid analytics functions.
 """
-from typing import List, Tuple
+
 import json
 import pprint
 import warnings
+from typing import List, Tuple
+
 import pyarrow
 
 with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
     # suppress warning about pyarrow as future required dependency
     from pandas import DataFrame
-import math as math   
+
 import copy
+import math as math
 import random
+
 import numpy as np
 import pandas as pd
 import power_grid_model as pgm
+from power_grid_model import *
+from power_grid_model import (
+    CalculationMethod,
+    CalculationType,
+    LoadGenType,
+    MeasuredTerminalType,
+    PowerGridModel,
+    initialize_array,
+)
 from power_grid_model.utils import json_deserialize, json_serialize
 from power_grid_model.validation import ValidationException
-from power_grid_model import *
-
-from power_grid_model import LoadGenType
-from power_grid_model import PowerGridModel, CalculationMethod, CalculationType, MeasuredTerminalType
-from power_grid_model import initialize_array
 
 import power_system_simulation.graph_processing as pss
 import power_system_simulation.pgm_processing as pgm_p
 
 
-
 class LV_Feeder_error(Exception):
-
     """
     Error class for the LV feeder.
     """
+
     def __init__(self, mode):
         """
         Prints the exception message using the standard exception class.
@@ -43,14 +50,17 @@ class LV_Feeder_error(Exception):
           mode: error type,
             0 if the IDs are not valid
             1 if from_node is not the same node as to_node
-        """    
+        """
+
+
 pass
+
+
 class Load_profile_error(Exception):
-    
     """
     Error class for the Load_profile.
-    """    
-    
+    """
+
     def __init__(self, mode):
         """
         Prints the exception message using the standard exception class.
@@ -62,53 +72,59 @@ class Load_profile_error(Exception):
             1 if the node ids do not match each other in the profiles.
             2 if the IDs in the profiles are not valid IDs of sym_load.
         """
+
+
 pass
 
-class LV_grid:
 
+class LV_grid:
     """
     DOCSTRING
     """
-    
-    def __init__(self, network_data: str, active_profile: str, reactive_profile: str, ev_active_profile: str, meta_data: str):   
-         
+
+    def __init__(
+        self,
+        network_data: str,
+        active_profile: str,
+        reactive_profile: str,
+        ev_active_profile: str,
+        meta_data: str,
+    ):
         """
         Serializing the json file.
-        """ 
+        """
         self.meta_data = meta_data
-        
+
         self.pgm_input = network_data
         # Read active and reactive load profile from parquet file
         self.active_load_profile = active_profile
-        
+
         self.reactive_load_profile = reactive_profile
-        
+
         self.ev_active_profile = ev_active_profile
-        
+
         pgm.validation.assert_valid_input_data(self.pgm_input)
 
         self.pgm_model = pgm.PowerGridModel(self.pgm_input)
-        
+
         """
         Validity checks need to be made to ensure that there is no overlap or mismatching between the relevant IDs and profiles. Read 'input validity check' in assignment 3 for the specific checks.
         also raise or passthrough relevant errors.
         """
-        
-        
+
         """
         NOTE: the funtionalities are independent from each other. For example, for optimal tap position analysis, you need to analyse the original grid with house profile, WITHOUT the EV profile.
         """
         pass
 
-    def optimal_tap_position(self, optimization_criterion: str) -> tuple[int, float]: 
-        
+    def optimal_tap_position(self, optimization_criterion: str) -> tuple[int, float]:
         """
         Optimize the tap position of the transformer in the LV grid.
         Run a one time power flow calculation on every possible tap postition for every timestamp (https://power-grid-model.readthedocs.io/en/stable/examples/Transformer%20Examples.html).
         The most opmtimized tap position should have the min total energy loss of all lines and whole period and min. deviation of p.u. node voltages w.r.t. 1 p.u.
         (We think that total energy loss has more importance than the Delta p.u.)
         The user can choose the criteria for optimization, so thye can choose how low the energy_loss and voltage_deviation should be for it to be valid.
-    
+
         Args:
             optimization_criteria (str): Criteria for optimization (e.g., 'energy_loss', 'voltage_deviation').
 
@@ -119,12 +135,12 @@ class LV_grid:
         # Problem: Want update profile for transformer, but static load profile, while PGM processing can't handle that
         # So this method needs to duplicate the functionality from PGM processing
         # Unless it's changed, but the two should be independent
-        node_amount = pd.DataFrame([node.tolist() for node in self.pgm_input['node']])[0].max()
+        node_amount = pd.DataFrame([node.tolist() for node in self.pgm_input["node"]])[0].max()
 
         # This doesnt work
-        #update_transformer_profile = pgm.initialize_array(
+        # update_transformer_profile = pgm.initialize_array(
         #    "update", "transformer", (node_amount - 1, 1)
-        #)
+        # )
         # Assume source is always 0 (True for both small and big data set)
         # This is shit too
         """
@@ -149,41 +165,48 @@ class LV_grid:
         pgm_input = self.pgm_input
         for x in range(1, node_amount + 1):
             pgm_input["transformer"][0][2] = x
-            processor = pgm_p.PgmProcessor(pgm_input, self.active_load_profile, self.reactive_load_profile)
+            processor = pgm_p.PgmProcessor(
+                pgm_input, self.active_load_profile, self.reactive_load_profile
+            )
             processor.create_update_model()
             processor.run_batch_process()
             [aggregate1, aggregate2] = processor.get_aggregate_results()
-            if optimization_criterion == 'energy_loss':
+            if optimization_criterion == "energy_loss":
                 result = aggregate2["energy_loss"].sum()
-            elif optimization_criterion == 'voltage_deviation':
-                result = aggregate1['u_pu_max'].mean() + aggregate1["u_pu_min"].mean() - 2
+            elif optimization_criterion == "voltage_deviation":
+                result = aggregate1["u_pu_max"].mean() + aggregate1["u_pu_min"].mean() - 2
             else:
                 pass
-            if criterion == -1: 
+            if criterion == -1:
                 criterion = result
                 criterion_node_id = x
-            elif result < criterion: 
+            elif result < criterion:
                 criterion = result
                 criterion_node_id = x
-            print("Node: " + str(x) + " Best result: " + str(criterion) + " Best result node: " + str(criterion_node_id))
+            print(
+                "Node: "
+                + str(x)
+                + " Best result: "
+                + str(criterion)
+                + " Best result node: "
+                + str(criterion_node_id)
+            )
 
         return tuple([criterion_node_id, criterion])
 
-        
-    def EV_penetration_level(self,penetration_level : float): 
-        
+    def EV_penetration_level(self, penetration_level: float):
         """
         Randomly adding EV charging profiles according to a couple criterea using the input 'penetration_level'.
-        
+
         First: The number of EVs per LV feeder needs to be equal to 'round_down[penetration_level * total_houses / number_of_feeders]'
         To our understanding, an EV feeder is just a branch. This means that the list of feeder IDs contains all line IDs of every start of a branch.
-        
+
         Second: Use Assignment 1 to see which house is in which branch/feeder.
         Then within each feeder randomly select houses which will have an EV charger. Don't forget the number of EVs per LV feeder.
-                    
+
         Third: For each selected house with EV, randomly select an EV charging profile to add to the sym_load of that house.
         Every profile can not be used twice -> there will be enough profiles to cover all of sym_load.
-                    
+
         Last: Get the two aggregation tables using Assignment 2 and return these.
 
         Args:
@@ -191,85 +214,92 @@ class LV_grid:
 
         Returns:
             Two aggregation tables using Assignment 2.
-            
+
         NOTE: The EV charging profile does not have sym_load IDs in the column header. They are just sequence numbers of the pool. Assigning the EV profiles to sym_load is part of the assignment tasks.
-        """        
-        #make Graphprocessing instance to randomly select houses with ev         
+        """
+        # make Graphprocessing instance to randomly select houses with ev
         vertex_ids = [node[0] for node in self.pgm_input["node"]]
         edge_ids = [edge[0] for edge in self.pgm_input["line"]]
         edge_vertex_id_pairs = [(edge[1], edge[2]) for edge in self.pgm_input["line"]]
         edge_enabled = [(edge[3] == 1 and edge[4] == 1) for edge in self.pgm_input["line"]]
         source_vertex_id = self.pgm_input["source"][0][1]
-        
+
         # Pretend all transformers are short circuits, so that GraphProcessor can use it
         for transformer in self.pgm_input["transformer"]:
             edge_vertex_id_pairs.append((transformer[1], transformer[2]))
             edge_enabled.append(True)
             edge_ids.append(transformer[0])
-        gp = pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
-        
-        #use the instance to know which houses for which feeder
-        #see which lines are feeders and which nodes/houses are connected
-        
-        #random.seed(0)
+        gp = pss.GraphProcessor(
+            vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id
+        )
+
+        # use the instance to know which houses for which feeder
+        # see which lines are feeders and which nodes/houses are connected
+
+        # random.seed(0)
         feeder_nodes = {}
         feeders = []
         feeder_houses = {}
         total_real_house_per_LV = []
         EV_houses = {}
         House_Profile = {}
-        
-        #see which feeder has which nodes
+
+        # see which feeder has which nodes
         for feeder_id in self.meta_data["lv_feeders"]:
             feeders.append(feeder_id)
             feeder_nodes[feeder_id] = gp.find_downstream_vertices(feeder_id)
-        
-        #get the total houses and nmr lv feeders from pgm_input
+
+        # get the total houses and nmr lv feeders from pgm_input
         sym_houses = [house[1] for house in self.pgm_input["sym_load"]]
         total_houses = len(sym_houses)
         total_feeders = len(feeder_nodes)
         nmr_ev_per_lv_feeder = math.floor(penetration_level * total_houses / total_feeders)
-        
-        #get which houses are from which feeder
+
+        # get which houses are from which feeder
         for x in range(len(feeders)):
             houses = [i for i in sym_houses if i in feeder_nodes[feeders[x]]]
             total_real_house_per_LV.append(houses)
         for x in range(len(feeders)):
             feeder_id = self.meta_data["lv_feeders"][x % len(self.meta_data["lv_feeders"])]
             feeder_houses[feeder_id] = total_real_house_per_LV[x]
-        
-        #get which houses will have an EV per feeder
+
+        # get which houses will have an EV per feeder
         for feeder_id in self.meta_data["lv_feeders"]:
             random_houses_ev = random.sample(feeder_houses[feeder_id], nmr_ev_per_lv_feeder)
-            EV_houses[feeder_id] = random_houses_ev    
+            EV_houses[feeder_id] = random_houses_ev
         parquet_df = pd.DataFrame(self.ev_active_profile)
         columns = list(parquet_df.columns.values)
-        
-        #get random profiles with no repetitives
+
+        # get random profiles with no repetitives
         random.shuffle(columns)
         amount_profiles = len(feeders)
-        random_profile = [columns[i:i+nmr_ev_per_lv_feeder] for i in range(0, len(columns), nmr_ev_per_lv_feeder)][:amount_profiles]
-        
-        #assign which random profile is paired with which house
+        random_profile = [
+            columns[i : i + nmr_ev_per_lv_feeder]
+            for i in range(0, len(columns), nmr_ev_per_lv_feeder)
+        ][:amount_profiles]
+
+        # assign which random profile is paired with which house
         index_of_feeders = 0
         for x in feeders:
             index_of_random_profile = 0
             for i in EV_houses[x]:
                 House_number_list = EV_houses[x]
                 House_number = House_number_list[index_of_random_profile]
-                House_Profile[House_number] = random_profile[index_of_feeders][index_of_random_profile]
-                index_of_random_profile = index_of_random_profile+1    
-            index_of_feeders = index_of_feeders+1
+                House_Profile[House_number] = random_profile[index_of_feeders][
+                    index_of_random_profile
+                ]
+                index_of_random_profile = index_of_random_profile + 1
+            index_of_feeders = index_of_feeders + 1
 
         # Assign sym_load nodes to input_network_data.json IDs
         House_Profile_Listed = list(House_Profile.keys())
         House_Profile_Id = dict()
 
-        for x in range(0, len(self.pgm_input['sym_load']) - 1):
+        for x in range(0, len(self.pgm_input["sym_load"]) - 1):
             for node_id in House_Profile_Listed:
-                node_named = self.pgm_input['sym_load'][x].tolist()[1]
+                node_named = self.pgm_input["sym_load"][x].tolist()[1]
                 if node_named == node_id:
-                    id = self.pgm_input['sym_load'][x].tolist()[0]
+                    id = self.pgm_input["sym_load"][x].tolist()[0]
                     House_Profile_Id[id] = House_Profile[node_named]
 
         # Modify the active and reactive load profile according to the EV house profile
@@ -287,17 +317,18 @@ class LV_grid:
         # Otherwise, do whatever with it in this part (e.g. passthrough return)
         self.__EV_penetration_pevel_evaluate(True)
 
-    def __EV_penetration_pevel_evaluate(self, display = False) -> list[pd.DataFrame, pd.DataFrame]:
-        processor = pgm_p.PgmProcessor(self.pgm_input, self.active_load_profile_ev, self.reactive_load_profile_ev)
+    def __EV_penetration_pevel_evaluate(self, display=False) -> list[pd.DataFrame, pd.DataFrame]:
+        processor = pgm_p.PgmProcessor(
+            self.pgm_input, self.active_load_profile_ev, self.reactive_load_profile_ev
+        )
         processor.create_update_model()
         processor.run_batch_process()
         [aggregate1, aggregate2] = processor.get_aggregate_results()
         if display:
             print(aggregate1)
             print(aggregate2)
-        
-    def N_1_calculation(self,line_id):
-        
+
+    def N_1_calculation(self, line_id):
         """
         One line will be disconnected -> generate alternative grid topoligy.
         Check and raise the relevant errors.
@@ -317,29 +348,44 @@ class LV_grid:
         edge_vertex_id_pairs = [(edge[1], edge[2]) for edge in self.pgm_input["line"]]
         edge_enabled = [(edge[3] == 1 and edge[4] == 1) for edge in self.pgm_input["line"]]
         source_vertex_id = self.pgm_input["source"][0][1]
-        
+
         # Pretend all transformers are short circuits, so that GraphProcessor can use it
         for transformer in self.pgm_input["transformer"]:
             edge_vertex_id_pairs.append((transformer[1], transformer[2]))
             edge_enabled.append(True)
             edge_ids.append(transformer[0])
-        
-        gp = pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
-        
+
+        gp = pss.GraphProcessor(
+            vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id
+        )
+
         for alternative_edge in gp.find_alternative_edges(line_id):
             # Enable the alternative edge in the json, disable line_id (the input line)
             pgm_input_alternative = copy.deepcopy(self.pgm_input)
-            alternative_edge_index = next((i for i, item in enumerate(pgm_input_alternative['line']) if item['id'] == alternative_edge), None)
-            input_edge_index = next((i for i, item in enumerate(pgm_input_alternative['line']) if item['id'] == line_id), None)
-            
+            alternative_edge_index = next(
+                (
+                    i
+                    for i, item in enumerate(pgm_input_alternative["line"])
+                    if item["id"] == alternative_edge
+                ),
+                None,
+            )
+            input_edge_index = next(
+                (
+                    i
+                    for i, item in enumerate(pgm_input_alternative["line"])
+                    if item["id"] == line_id
+                ),
+                None,
+            )
+
             # Enable the alternative edge
-            pgm_input_alternative['line'][alternative_edge_index][4] = 1
-            pgm_input_alternative['line'][alternative_edge_index][3] = 1
-            
+            pgm_input_alternative["line"][alternative_edge_index][4] = 1
+            pgm_input_alternative["line"][alternative_edge_index][3] = 1
+
             # Disable the input edge
-            pgm_input_alternative['line'][input_edge_index][4] = 0
-            pgm_input_alternative['line'][input_edge_index][3] = 0
-            
+            pgm_input_alternative["line"][input_edge_index][4] = 0
+            pgm_input_alternative["line"][input_edge_index][3] = 0
+
             # Do the calculation for pgm_input_alternative
-            #p = pgm_p.PgmProcessor()
-            
+            # p = pgm_p.PgmProcessor()
