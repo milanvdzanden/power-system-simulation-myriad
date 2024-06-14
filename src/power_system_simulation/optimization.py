@@ -90,7 +90,7 @@ class EvProfilesDontMatchSymLoad(Exception):
         """
         Exception.__init__(self, "The amount of EVProfiles do not match the amount of SymLoads.")
 
-class LVGrid:
+class LV_Grid:
 
     """
     DOCSTRING
