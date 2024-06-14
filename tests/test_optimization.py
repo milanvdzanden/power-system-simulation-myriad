@@ -163,8 +163,8 @@ def test_errors():
 
 test_errors()
 
-    p = psso.LVGrid(network_data, active_profile, reactive_profile, ev_active_profile, meta_data)
-    print(p.n_1_calculation(18))
+p = psso.LVGrid(network_data, active_profile, reactive_profile, ev_active_profile, meta_data)
+print(p.n_1_calculation(18))
     
 test_optimization()
 
