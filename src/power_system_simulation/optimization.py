@@ -19,7 +19,6 @@ import pandas as pd
 import power_grid_model as pgm
 from power_grid_model.utils import json_deserialize, json_serialize
 
-#1 The LV grid should be a valid PGM input data.
 from power_grid_model.validation import ValidationException
 
 from power_grid_model import *
@@ -31,7 +30,6 @@ from power_grid_model import initialize_array
 import power_system_simulation.graph_processing as pss
 import power_system_simulation.pgm_processing as pgm_p
 
-#2 The LV grid has exactly one transformer, and one source.
 class LvGridOneTransformerAndSource(Exception):
     """
     Error class for class LVGridoneTransformerAndSource
@@ -41,8 +39,6 @@ class LvGridOneTransformerAndSource(Exception):
         
         Exception.__init__(self, "The LV_Grid does not have exactly one source and one tranformer.")
 
-#3 All IDs in the LV Feeder IDs are valid line IDs.
-#4 All the lines in the LV Feeder IDs have the from_node the same as the to_node of the transformer.
 class LVFeederError(Exception):
 
     """
@@ -65,7 +61,6 @@ class LVFeederError(Exception):
         + str(mode),
     ) 
 
-#5 The grid is fully connected in the initial state.
 class GraphNotFullyConnectedError(Exception):
     """
     Error class for GraphNotFullyConnectedError
@@ -80,7 +75,6 @@ class GraphNotFullyConnectedError(Exception):
         """
         Exception.__init__(self, "The graph is not fully connected.")
 
-#6 The grid has no cycles in the initial state.
 class GraphCycleError(Exception):
     """
     Error class for GraphCycleError
@@ -95,12 +89,6 @@ class GraphCycleError(Exception):
         """
         Exception.__init__(self, "The graph contains cycles.")
 
-#7 The timestamps are matching between the active load profile, reactive load profile, and EV charging profile.
-#8 The IDs in active load profile and reactive load profile are matching.
-
-#9 The IDs in active load profile and reactive load profile are valid IDs of sym_load.
-
-      
 class ProfilesDontMatchError(Exception):
     """
     Error class for class ProfilesDontMatchError
@@ -125,7 +113,6 @@ class ProfilesDontMatchError(Exception):
             + str(mode),
         )
         
-#10 The number of EV charging profile is at least the same as the number of sym_load.
 class EvProfilesDontMatchSymLoad(Exception):
 
     def __init__(self):
@@ -200,6 +187,7 @@ class LV_grid:
         # ---------------------------------------------------------------------------------------------------------------
         
         #5 ---------------------------------------------------------------------------------------------------------------
+        # Check if the grid is fully connected in the initial state.
         graph_all_edges = nx.Graph()
         for node in self.pgm_input["node"]:
             graph_all_edges.add_node(node["id"])
@@ -216,6 +204,7 @@ class LV_grid:
         # ---------------------------------------------------------------------------------------------------------------
         
         #6 --------------------------------------------------------------------------------------------------------------- 
+        # Check if the grid has no cycles in the initial state.
         graph_enabled_edges = nx.Graph()
         graph_enabled_edges_ids = []
         graph_enabled_edges.add_nodes_from(vertex_ids)
@@ -240,18 +229,12 @@ class LV_grid:
         
         #7 ---------------------------------------------------------------------------------------------------------------
         # Check if time series of both active and reactive profile match
-        # print(self.active_load_profile.index)
-        # print("-----------------------------")
-        # print(self.reactive_load_profile.index)
         if not self.active_load_profile.index.equals(self.reactive_load_profile.index): #and self.active_load_profile.index.equals(self.ev_active_profile.index) and self.reactive_load_profile.index.equals(self.ev_active_profile.index):
             raise ProfilesDontMatchError(0)
         # ---------------------------------------------------------------------------------------------------------------
         
         #8 ---------------------------------------------------------------------------------------------------------------
-        # print(self.active_load_profile.columns)
-        # print("-----------------------------")
-        # print(self.reactive_load_profile.columns)
-        # Check if node IDs match in both profiles
+        # Check if the IDs in active load profile and reactive load profile are matching.
         if not self.active_load_profile.columns.equals(self.reactive_load_profile.columns):
             raise ProfilesDontMatchError(1)
         # ---------------------------------------------------------------------------------------------------------------
@@ -266,7 +249,7 @@ class LV_grid:
         #---------------------------------------------------------------------------------------------------------------
         
         #10 ---------------------------------------------------------------------------------------------------------------
-        
+        # Check if the number of EV charging profile is at least the same as the number of sym_load.
         if not len(list(self.ev_active_profile.columns.values)) == (len(self.pgm_input["sym_load"])):
             raise EvProfilesDontMatchSymLoad()
         # ---------------------------------------------------------------------------------------------------------------
@@ -312,7 +295,7 @@ class LV_grid:
             
         NOTE: The EV charging profile does not have sym_load IDs in the column header. They are just sequence numbers of the pool. Assigning the EV profiles to sym_load is part of the assignment tasks.
         """        
-        #make Graphprocessing instance to randomly select houses with ev         
+        # Make Graphprocessing instance to randomly select houses with ev         
         vertex_ids = [node[0] for node in self.pgm_input["node"]]
         edge_ids = [edge[0] for edge in self.pgm_input["line"]]
         edge_vertex_id_pairs = [(edge[1], edge[2]) for edge in self.pgm_input["line"]]
@@ -326,8 +309,8 @@ class LV_grid:
             edge_ids.append(transformer[0])
         gp = pss.GraphProcessor(vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id)
         
-        #use the instance to know which houses for which feeder
-        #see which lines are feeders and which nodes/houses are connected
+        # Use the instance to know which houses for which feeder
+        # See which lines are feeders and which nodes/houses are connected
         
         #random.seed(0)
         feeder_nodes = {}
@@ -337,18 +320,18 @@ class LV_grid:
         EV_houses = {}
         House_Profile = {}
         
-        #see which feeder has which nodes
+        # See which feeder has which nodes
         for feeder_id in self.meta_data["lv_feeders"]:
             feeders.append(feeder_id)
             feeder_nodes[feeder_id] = gp.find_downstream_vertices(feeder_id)
                 
-        #get the total houses and nmr lv feeders from pgm_input
+        # Get the total houses and nmr lv feeders from pgm_input
         sym_houses = [house[1] for house in self.pgm_input["sym_load"]]
         total_houses = len(sym_houses)
         total_feeders = len(feeder_nodes)
         nmr_ev_per_lv_feeder = math.floor(penetration_level * total_houses / total_feeders)
         
-        #get which houses are from which feeder
+        # Get which houses are from which feeder
         for x in range(len(feeders)):
             houses = [i for i in sym_houses if i in feeder_nodes[feeders[x]]]
             total_real_house_per_LV.append(houses)
@@ -356,19 +339,19 @@ class LV_grid:
             feeder_id = self.meta_data["lv_feeders"][x % len(self.meta_data["lv_feeders"])]
             feeder_houses[feeder_id] = total_real_house_per_LV[x]
         
-        #get which houses will have an EV per feeder
+        # Get which houses will have an EV per feeder
         for feeder_id in self.meta_data["lv_feeders"]:
             random_houses_ev = random.sample(feeder_houses[feeder_id], nmr_ev_per_lv_feeder)
             EV_houses[feeder_id] = random_houses_ev    
         parquet_df = pd.DataFrame(self.ev_active_profile)
         columns = list(parquet_df.columns.values)
         
-        #get random profiles with no repetitives
+        # Get random profiles with no repetitives
         random.shuffle(columns)
         amount_profiles = len(EV_houses)
         random_profile = [columns[i:i+nmr_ev_per_lv_feeder] for i in range(0, len(columns), nmr_ev_per_lv_feeder)][:amount_profiles]
         
-        #assign which random profile is paired with which house
+        # Assign which random profile is paired with which house
         index_of_feeders = 0
         for x in feeders:
             index_of_random_profile = 0
