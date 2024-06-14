@@ -482,15 +482,15 @@ class LV_grid:
             df_line_loss = aggregate_results[1]
 
             # Find index of max loading row
-            max_index = df_line_loss["max_loading"].idxmax()
+            max_index = df_line_loss["Max_Loading"].idxmax()
             # Use index to save max loading row
             max_row = df_line_loss.loc[max_index]
 
             # Put data in output dataframe
             df_output.loc[index, "alternative_edge"] = alternative_edge
-            df_output.loc[index, "max_loading"] = max_row["max_loading"]
+            df_output.loc[index, "max_loading"] = max_row["Max_Loading"]
             df_output.loc[index, "max_loading_line"] = max_row.name
-            df_output.loc[index, "timestamp_max"] = max_row["timestamp_max"]
+            df_output.loc[index, "timestamp_max"] = max_row["Max_Loading_Timestamp"]
 
         df_output.set_index("alternative_edge", inplace=True)
         return df_output
