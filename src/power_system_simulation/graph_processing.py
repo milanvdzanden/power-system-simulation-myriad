@@ -250,11 +250,9 @@ class GraphProcessor:
         if self.edge_enabled[input_index_edge] is False:
             return output
 
-        # Step 1: Calculate the islands and store them
-        # Step 2: Remove the input edge from the id_pairs list
-        # Step 3: Calculate the new islands
-        # Step 4: Remove the islands that were already there in Step 1
-        # Step 5: Check which remaining islands contain the source vertex, the other one
+        # Step 1: Remove the input edge from the id_pairs list
+        # Step 2: Calculate the islands
+        # Step 3: Check which remaining islands contain the source vertex, the other one
         # IS the output
 
         # List for storing all enabled edges, to use for finding out if the graph is fully connected
@@ -270,17 +268,6 @@ class GraphProcessor:
                 edge_vertex_id_pairs_enabled_before.append(edge_to_check)
 
         # Step 1 is calculated here
-        ## Island calculation before removing the input edge
-        graph = nx.Graph()
-        graph.add_nodes_from(self.vertex_ids)
-        graph.add_edges_from(edge_vertex_id_pairs_enabled_before)
-
-        list_of_islands_before = []
-
-        for i, c in enumerate(nx.connected_components(graph)):
-            list_of_islands_before.append(list(c))
-
-        # Step 2 is calculated here
         # For loop for finding all enabled edges without the input edge
         edge_vertex_id_pairs_enabled_after = []
         edge_ids_enabled_after = []  # The list with the input edge removed
@@ -290,7 +277,7 @@ class GraphProcessor:
                 edge_vertex_id_pairs_enabled_after.append(
                     edge_vertex_id_pairs_enabled_before[edge_index]
                 )
-        # Step 3: Calculate the new islands
+        # Step 2: Calculate the new islands
         ## Island calculation after
         graph = nx.Graph()
         graph.add_nodes_from(self.vertex_ids)
@@ -302,16 +289,15 @@ class GraphProcessor:
             list_of_islands_after.append(list(c))
 
         output_list = []
-        # Step 4: Remove the islands that were already there in Step 1
-        # Step 5: Check which remaining islands contain the source vertex, the other one
+        # Step 3: Check which remaining islands contain the source vertex, the other one
         # IS the output
         # We loop through all the islands, if an island contains the source vertex it is removed,
         # and if the island already existed initially it is also removed.
         # What you are left with is a list of the downstream vertices
         for id_list in list_of_islands_after:
             contains_source = False
-            if id_list in list_of_islands_before:
-                continue
+            # if id_list in list_of_islands_before:
+            #     continue
             for j in id_list:
                 if j is self.source_vertex_id:
                     contains_source = True
