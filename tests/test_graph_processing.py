@@ -1,11 +1,13 @@
 import os
 import sys
+
 import pytest
 
 src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
 sys.path.append(src_dir)
 
 import networkx as nx
+
 import power_system_simulation.graph_processing as pss
 
 
