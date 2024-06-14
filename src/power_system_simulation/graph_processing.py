@@ -265,7 +265,7 @@ class GraphProcessor:
         for edge_to_check in self.edge_vertex_id_pairs:
             edge_to_check_index = self.edge_vertex_id_pairs.index(edge_to_check)
 
-            if self.edge_enabled[edge_to_check_index] is True:
+            if self.edge_enabled[edge_to_check_index] == True:
                 edge_ids_enabled_before.append(self.edge_ids[edge_to_check_index])
                 edge_vertex_id_pairs_enabled_before.append(edge_to_check)
 
@@ -308,7 +308,10 @@ class GraphProcessor:
             if not contains_source:
                 output_list.append(id_list)
 
-        output = output_list[0]
+        try:
+            output = output_list[0]
+        except:
+            output = []
         return output
 
     def find_alternative_edges(self, disabled_edge_id: int) -> List[int]:

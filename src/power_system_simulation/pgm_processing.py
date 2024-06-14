@@ -9,7 +9,6 @@ import power_grid_model as pgm
 
 # from power_grid_model.validation import *
 from power_grid_model import CalculationMethod
-from power_grid_model.utils import json_deserialize, json_serialize
 from power_grid_model.validation import ValidationException
 from scipy import integrate
 
