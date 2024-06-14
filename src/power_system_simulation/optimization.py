@@ -21,7 +21,6 @@ from power_grid_model import *
 import power_system_simulation.graph_processing as pss
 import power_system_simulation.pgm_processing as pgm_p
 
-
 class LvGridOneTransformerAndSource(Exception):
     """
     Error class for class LVGridoneTransformerAndSource
@@ -30,7 +29,6 @@ class LvGridOneTransformerAndSource(Exception):
     def __init__(self):
 
         Exception.__init__(self, "The LV_Grid does not have one source and one tranformer.")
-
 
 class LVFeederError(Exception):
     """
@@ -92,8 +90,8 @@ class EvProfilesDontMatchSymLoad(Exception):
         """
         Exception.__init__(self, "The amount of EVProfiles do not match the amount of SymLoads.")
 
+class LVGrid:
 
-class LV_grid:
     """
     DOCSTRING
     """
@@ -241,6 +239,7 @@ class LV_grid:
             raise EvProfilesDontMatchSymLoad()
         # ------------------------------------------------
 
+
     def optimal_tap_position(self, optimization_criteri: str):
         """
         Optimize the tap position of the transformer in the LV grid.
@@ -262,7 +261,7 @@ class LV_grid:
         """
         pass
 
-    def EV_penetration_level(self, penetration_level: float, display=False):
+   def EV_penetration_level(self, penetration_level: float, display=False):
         """
         Randomly adding EV charging profiles according to a
         couple criteria using the input 'penetration_level'.
@@ -405,18 +404,20 @@ class LV_grid:
             print(aggregate_results[1])
         return aggregate_results
 
-    def N_1_calculation(self, line_id):
+    def n_1_calculation(self, line_id):
         """
         One line will be disconnected -> generate alternative grid topoligy.
         Check and raise the relevant errors.
         Find a list of IDs that are now disconnected,
         but can be connected to make the grid fully connected.
-        Run the time-series power flow calculation for the whole time period
-        for every alternative connected line.
+        (Literally find_alternative_edges from Assignment 1).
+        Run the time-series power flow calculation for the whole time period for every
+        alternative connected line.
+        (https://power-grid-model.readthedocs.io/en/stable/examples/Transformer%20Examples.html)
         Return a table to summarize the results with the relevant columns stated in the assignment
         (Every row of this table is a scenario with a different alternative line connected.)
-        If there are no alternatives, it should return an emtpy table with the correct
-        format and titles in the columns and rows.
+        If there are no alternatives, it should return an emtpy table with the correct format
+        and titles in the columns and rows.
 
         Args:
             line_id (int): The uses will give a line_id that will be disconnected.
@@ -440,7 +441,11 @@ class LV_grid:
             vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id
         )
 
-        for alternative_edge in gp.find_alternative_edges(line_id):
+        df_output = pd.DataFrame(
+            columns=["alternative_edge", "max_loading", "max_loading_line", "timestamp_max"]
+        )
+
+        for index, alternative_edge in enumerate(gp.find_alternative_edges(line_id)):
             # Enable the alternative edge in the json, disable line_id (the input line)
             pgm_input_alternative = copy.deepcopy(self.pgm_input)
             alternative_edge_index = next(
@@ -469,4 +474,26 @@ class LV_grid:
             pgm_input_alternative["line"][input_edge_index][3] = 0
 
             # Do the calculation for pgm_input_alternative
-            # p = pgm_p.PgmProcessor()
+            p = pgm_p.PgmProcessor(
+                pgm_input_alternative, self.active_load_profile, self.reactive_load_profile
+            )
+            p.create_update_model()
+            p.run_batch_process()
+
+            aggregate_results = p.get_aggregate_results()
+            df_line_loss = aggregate_results[1]
+
+            # Find index of max loading row
+            max_index = df_line_loss["max_loading"].idxmax()
+            # Use index to save max loading row
+            max_row = df_line_loss.loc[max_index]
+
+            # Put data in output dataframe
+            df_output.loc[index, "alternative_edge"] = alternative_edge
+            df_output.loc[index, "max_loading"] = max_row["max_loading"]
+            df_output.loc[index, "max_loading_line"] = max_row.name
+            df_output.loc[index, "timestamp_max"] = max_row["timestamp_max"]
+
+        df_output.set_index("alternative_edge", inplace=True)
+        return df_output
+

@@ -11,10 +11,8 @@ src_dir = src_dir.replace("\\", "/")
 
 import copy as copy
 import json
-
 import networkx as nx
 from power_grid_model.utils import json_deserialize, json_serialize
-
 import power_system_simulation.graph_processing as pss
 import power_system_simulation.optimization as psso
 
@@ -65,7 +63,6 @@ def test_optimization():
         Just checking if it works with different line IDs.
     
     """
-
     p = psso.LV_grid(network_data, active_profile, reactive_profile, ev_active_profile, meta_data)
     p.N_1_calculation(18)
     p.EV_penetration_level(0.8)
@@ -164,6 +161,10 @@ def test_errors():
     with pytest.raises(psso.EvProfilesDontMatchSymLoad) as excinfo:
         psso.LV_grid(network_data, active_profile, reactive_profile, test_number_EV, meta_data)
 
-
-test_optimization()
 test_errors()
+
+    p = psso.LVGrid(network_data, active_profile, reactive_profile, ev_active_profile, meta_data)
+    print(p.n_1_calculation(18))
+    
+test_optimization()
+

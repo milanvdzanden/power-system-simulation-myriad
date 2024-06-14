@@ -14,7 +14,7 @@ import power_system_simulation.graph_processing as pss
 def test_downstream_vertices():
     # edge_id = 10
     vertex_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-    edge_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    edge_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
     edge_vertex_id_pairs = [
         (2, 6),
         (1, 2),
@@ -26,8 +26,9 @@ def test_downstream_vertices():
         (7, 8),
         (9, 10),
         (1, 11),
+        (4, 8)
     ]
-    edge_enabled = [True, True, True, True, True, True, True, False, True, True]
+    edge_enabled = [True, True, True, True, True, True, True, False, True, True, True]
     source_vertex_id = 1
     gp = pss.GraphProcessor(
         vertex_ids, edge_ids, edge_vertex_id_pairs, edge_enabled, source_vertex_id
@@ -36,9 +37,9 @@ def test_downstream_vertices():
         gp.find_downstream_vertices(12)
 
     assert set(gp.find_downstream_vertices(1)) == set([6, 7, 9, 10])
-    assert set(gp.find_downstream_vertices(2)) == set([2, 3, 4, 5, 6, 7, 9, 10])
-    assert set(gp.find_downstream_vertices(3)) == set([3, 4, 5])
-    assert set(gp.find_downstream_vertices(4)) == set([4, 5])
+    assert set(gp.find_downstream_vertices(2)) == set([2, 3, 4, 5, 6, 7, 8, 9, 10])
+    assert set(gp.find_downstream_vertices(3)) == set([3, 4, 5, 8])
+    assert set(gp.find_downstream_vertices(4)) == set([4, 5, 8])
     assert set(gp.find_downstream_vertices(5)) == set([7])
     assert set(gp.find_downstream_vertices(6)) == set([9, 10])
     assert set(gp.find_downstream_vertices(7)) == set([5])
@@ -48,9 +49,9 @@ def test_downstream_vertices():
 
     """
     v1 ----- edge2 ------ v2 ----- edge3 ------ v3 ----- edge4 ------ v4 ----- edge7 ------ v5
-    |                      |
-  edge10                 edge1
-    |                      |                          (disabled)
+    |                      |                                           |
+  edge10                 edge1                                       edge 11
+    |                      |                          (disabled)       |
    v11                    v6 ----- edge5 ------ v7 ----- edge8 ------ v8
                            |
                          edge6
