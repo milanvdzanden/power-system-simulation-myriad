@@ -289,6 +289,13 @@ class LV_grid:
         return self.__EV_penetration_level_evaluate(display)
 
     def __EV_penetration_level_evaluate(self, display=False) -> list[pd.DataFrame, pd.DataFrame]:
+        """
+        Evaluate the time-series batch power flow calculation on the EV-profiled network.
+        Args:
+            display: if True, the Pandas aggregate DataFrames will be displayed
+        Returns:
+            List of two aggregate DataFrames
+        """
         processor = pgm_p.PgmProcessor(
             self.pgm_input, self.active_load_profile_ev, self.reactive_load_profile_ev
         )
@@ -304,10 +311,14 @@ class LV_grid:
         """
         One line will be disconnected -> generate alternative grid topoligy.
         Check and raise the relevant errors.
-        Find a list of IDs that are now disconnected, but can be connected to make the grid fully connected. (Literally find_alternative_edges from Assignment 1).
-        Run the time-series power flow calculation for the whole time period for every alternative connected line. (https://power-grid-model.readthedocs.io/en/stable/examples/Transformer%20Examples.html)
-        Return a table to summarize the results with the relevant columns stated in the assignment (Every row of this table is a scenario with a different alternative line connected.)
-        If there are no alternatives, it should return an emtpy table with the correct format and titles in the columns and rows.
+        Find a list of IDs that are now disconnected, but can be connected to make the grid fully connected. 
+            (Literally find_alternative_edges from Assignment 1).
+        Run the time-series power flow calculation for the whole time period for every alternative 
+            connected line. (https://power-grid-model.readthedocs.io/en/stable/examples/Transformer%20Examples.html)
+        Return a table to summarize the results with the relevant columns stated in the assignment 
+            (Every row of this table is a scenario with a different alternative line connected.)
+        If there are no alternatives, it should return an emtpy table with the correct format 
+            and titles in the columns and rows.
 
         Args:
             line_id (int): The uses will give a line_id that will be disconnected.
