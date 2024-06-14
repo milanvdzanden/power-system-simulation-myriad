@@ -161,7 +161,7 @@ def test_errors():
     with pytest.raises(psso.EvProfilesDontMatchSymLoad) as excinfo:
         psso.LV_grid(network_data, active_profile, reactive_profile, test_number_EV, meta_data)
 
-p = psso.LVGrid(network_data, active_profile, reactive_profile, ev_active_profile, meta_data)
+p = psso.LV_Grid(network_data, active_profile, reactive_profile, ev_active_profile, meta_data)
 print(p.n_1_calculation(18))
     
 test_optimization()
