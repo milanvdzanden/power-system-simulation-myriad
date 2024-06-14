@@ -126,43 +126,21 @@ class LV_grid:
         The user can choose the criteria for optimization, so thye can choose how low the energy_loss and voltage_deviation should be for it to be valid.
 
         Args:
-            optimization_criteria (str): Criteria for optimization (e.g., 'energy_loss', 'voltage_deviation').
+            optimization_criteria: Criteria for optimization, either 'energy_loss' or 'voltage_deviation'.
 
         Returns:
-            tuple: Optimal tap position (node id) and corresponding performance metrics.
+            Tuple of optimal tap position (node id) and corresponding performance metrics.
         """
 
-        # Problem: Want update profile for transformer, but static load profile, while PGM processing can't handle that
-        # So this method needs to duplicate the functionality from PGM processing
-        # Unless it's changed, but the two should be independent
+        # Infer node amount from network description
         node_amount = pd.DataFrame([node.tolist() for node in self.pgm_input["node"]])[0].max()
 
-        # This doesnt work
-        # update_transformer_profile = pgm.initialize_array(
-        #    "update", "transformer", (node_amount - 1, 1)
-        # )
-        # Assume source is always 0 (True for both small and big data set)
-        # This is shit too
-        """
-        update_transformer_profile = np.empty((9, 4))
-        update_transformer_profile["id"] = self.pgm_input["transformer"][0][0]
-        update_transformer_profile["from_status"] = 1
-        update_transformer_profile["to_status"] =  1
-        update_transformer_profile["to_node"] = np.array(range(1, node_amount)).reshape(-1, 1)
-
-        print(update_transformer_profile)
-
-
- time_series_mutation = {"transformer": update_transformer_profile}
-        pgm.validation.assert_valid_batch_data(
-            input_data=self.pgm_input,
-            update_data= time_series_mutation,
-            calculation_type=pgm.CalculationType.power_flow,
-        )
-       """
+        # Initialize criterion variables
         criterion = -1
-        criterion_node_id = 0
+        criterion_node_id = -1
+        # Copy network description
         pgm_input = self.pgm_input
+        # Run batch power flow on all nodes to find optimal tap position
         for x in range(1, node_amount + 1):
             pgm_input["transformer"][0][2] = x
             processor = pgm_p.PgmProcessor(
@@ -172,29 +150,23 @@ class LV_grid:
             processor.run_batch_process()
             [aggregate1, aggregate2] = processor.get_aggregate_results()
             if optimization_criterion == "energy_loss":
-                result = aggregate2["energy_loss"].sum()
+                result = aggregate2["Total_Loss"].sum()
             elif optimization_criterion == "voltage_deviation":
-                result = aggregate1["u_pu_max"].mean() + aggregate1["u_pu_min"].mean() - 2
+                result = aggregate1["Max_Voltage"].mean() + aggregate1["Min_Voltage"].mean() - 2
             else:
-                pass
+                break
             if criterion == -1:
                 criterion = result
                 criterion_node_id = x
             elif result < criterion:
                 criterion = result
                 criterion_node_id = x
-            print(
-                "Node: "
-                + str(x)
-                + " Best result: "
-                + str(criterion)
-                + " Best result node: "
-                + str(criterion_node_id)
-            )
 
         return tuple([criterion_node_id, criterion])
 
-    def EV_penetration_level(self, penetration_level: float):
+    def EV_penetration_level(
+        self, penetration_level: float, display=False
+    ) -> list[pd.DataFrame, pd.DataFrame]:
         """
         Randomly adding EV charging profiles according to a couple criterea using the input 'penetration_level'.
 
@@ -314,19 +286,19 @@ class LV_grid:
                     self.reactive_load_profile_ev[id1] = 0
 
         # Run the batch calculation, provide True as arg to print DataFrame
-        # Otherwise, do whatever with it in this part (e.g. passthrough return)
-        self.__EV_penetration_pevel_evaluate(True)
+        return self.__EV_penetration_level_evaluate(display)
 
-    def __EV_penetration_pevel_evaluate(self, display=False) -> list[pd.DataFrame, pd.DataFrame]:
+    def __EV_penetration_level_evaluate(self, display=False) -> list[pd.DataFrame, pd.DataFrame]:
         processor = pgm_p.PgmProcessor(
             self.pgm_input, self.active_load_profile_ev, self.reactive_load_profile_ev
         )
         processor.create_update_model()
         processor.run_batch_process()
-        [aggregate1, aggregate2] = processor.get_aggregate_results()
+        aggregate_results = processor.get_aggregate_results()
         if display:
-            print(aggregate1)
-            print(aggregate2)
+            print(aggregate_results[0])
+            print(aggregate_results[1])
+        return aggregate_results
 
     def N_1_calculation(self, line_id):
         """

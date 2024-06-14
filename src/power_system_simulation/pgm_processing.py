@@ -274,10 +274,11 @@ class PgmProcessor:
         except:
             return False
         return False
-    
-%matplotlib inline
+
 
 """
+%matplotlib inline
+
 import matplotlib.animation
 import matplotlib.pyplot as plt
 from itertools import count
@@ -287,7 +288,6 @@ import time
 plt.rcParams["animation.html"] = "jshtml"
 plt.rcParams['figure.dpi'] = 150  
 plt.ioff()
-"""
 
 with open('input_network_data.json') as fp:
     data = fp.read()
@@ -508,3 +508,4 @@ def draw_aggregate_result(network_data, aggregate_table: pd.DataFrame, type: str
 
 draw_per_line()
 print(aggregate_table)
+"""

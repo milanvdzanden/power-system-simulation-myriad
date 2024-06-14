@@ -13,6 +13,7 @@ from power_grid_model.utils import json_deserialize, json_serialize
 
 import power_system_simulation.pgm_processing as pgm_p
 
+
 def test_pgm_processing():
     dir_network_json = src_dir + "/input_network_data.json"
     dir_active_profile = src_dir + "/active_power_profile.parquet"
@@ -30,28 +31,32 @@ def test_pgm_processing():
     p.create_update_model()
     p.run_batch_process()
     aggregate_results = p.get_aggregate_results()
-    
+
     # Save aggregate results (for drawing tests in external notebook as repository is not completed yet and cannot be used directly as-is)
     aggregate_results[0].to_parquet(src_dir + "/calculated_output_per_timestamp.parquet")
     aggregate_results[1].to_parquet(src_dir + "/calculated_output_per_line.parquet")
 
     # Change a timestamp in active profile to an incorrect one and check for error
     active_load_profile_wrong = active_load_profile.copy()
-    active_load_profile_wrong.rename(index={active_load_profile.index[0]:pd.to_datetime('today').normalize()}, inplace=True)
+    active_load_profile_wrong.rename(
+        index={active_load_profile.index[0]: pd.to_datetime("today").normalize()}, inplace=True
+    )
     with pytest.raises(pgm_p.ProfilesDontMatchError, match=r".*T0") as excinfo:
         p = pgm_p.PgmProcessor(network_data, active_load_profile_wrong, reactive_load_profile)
         p.create_update_model()
 
     # Change a node ID in active profile to an incorrect one and check for error
     active_load_profile_wrong = active_load_profile.copy()
-    active_load_profile_wrong.rename(columns={active_load_profile.columns[0]: 1234567890}, inplace=True)
+    active_load_profile_wrong.rename(
+        columns={active_load_profile.columns[0]: 1234567890}, inplace=True
+    )
     with pytest.raises(pgm_p.ProfilesDontMatchError, match=r".*T1") as excinfo:
         p = pgm_p.PgmProcessor(network_data, active_load_profile_wrong, reactive_load_profile)
         p.create_update_model()
 
     # Change a node ID in the network description to an incorrect one (different than reactive/active profile) and check for error
     network_data_wrong = network_data.copy()
-    network_data_wrong['sym_load'][0][0] = 1234567890
+    network_data_wrong["sym_load"][0][0] = 1234567890
     with pytest.raises(pgm_p.ProfilesDontMatchError, match=r".*T2") as excinfo:
         p = pgm_p.PgmProcessor(network_data_wrong, active_load_profile, reactive_load_profile)
         p.create_update_model()
@@ -79,5 +84,6 @@ def test_pgm_processing():
             )
             == True
         )
+
 
 test_pgm_processing()

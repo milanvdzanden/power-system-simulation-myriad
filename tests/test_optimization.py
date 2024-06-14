@@ -58,8 +58,19 @@ def test_optimization():
 
     p = psso.LV_grid(network_data, active_profile, reactive_profile, ev_active_profile, meta_data)
     p.N_1_calculation(18)
-    # p.EV_penetration_level(0.8)
+
+    # Test EV penetration level; Obtain aggregated results
+    aggregate_results = p.EV_penetration_level(0.8, True)
+
+    # Save aggregate results (for drawing tests in external notebook)
+    aggregate_results[0].to_parquet(src_dir + "/calculated_output_per_timestamp.parquet")
+    aggregate_results[1].to_parquet(src_dir + "/calculated_output_per_line.parquet")
+
+    # Test optimal tap position
     p.optimal_tap_position("energy_loss")
+    p.optimal_tap_position("voltage_deviation")
+    # Test optimal tap position, with wrong directive (should return -1, -1)
+    assert set(p.optimal_tap_position("wrong_directive")) == set([-1, -1])
 
 
 test_optimization()
