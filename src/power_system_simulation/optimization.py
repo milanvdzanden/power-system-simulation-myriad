@@ -1,7 +1,6 @@
 """
 Building a package with low voltage grid analytics functions.
 """
-
 import copy
 import math
 import random
@@ -27,7 +26,6 @@ class LvGridOneTransformerAndSource(Exception):
     """
 
     def __init__(self):
-
         Exception.__init__(self, "The LV_Grid does not have one source and one tranformer.")
 
 class LVFeederError(Exception):
@@ -78,7 +76,6 @@ class ProfilesDontMatchError(Exception):
             + str(mode),
         )
 
-
 class EvProfilesDontMatchSymLoad(Exception):
 
     def __init__(self):
@@ -91,7 +88,6 @@ class EvProfilesDontMatchSymLoad(Exception):
         Exception.__init__(self, "The amount of EVProfiles do not match the amount of SymLoads.")
 
 class LV_grid:
-
     """
     DOCSTRING
     """
@@ -104,7 +100,6 @@ class LV_grid:
         ev_active_profile: str,
         meta_data: str,
     ):
-
         self.meta_data = meta_data
         self.pgm_input = network_data
         self.active_load_profile = active_profile
@@ -240,26 +235,51 @@ class LV_grid:
         # ------------------------------------------------
 
 
-    def optimal_tap_position(self, optimization_criteri: str):
+    def optimal_tap_position(self, optimization_criterion: str) -> tuple[int, float]:
         """
         Optimize the tap position of the transformer in the LV grid.
-        Run a one time power flow calculation on every possible tap postition
-        for every timestamp
-        (https://power-grid-model.readthedocs.io/en/stable/examples/Transformer%20Examples.html).
-        The most opmtimized tap position should have the min total energy loss
-        of all lines and whole period and min. deviation of p.u. node voltages w.r.t. 1 p.u.
+        Run a one time power flow calculation on every possible tap postition for every timestamp (https://power-grid-model.readthedocs.io/en/stable/examples/Transformer%20Examples.html).
+        The most opmtimized tap position should have the min total energy loss of all lines and whole period and min. deviation of p.u. node voltages w.r.t. 1 p.u.
         (We think that total energy loss has more importance than the Delta p.u.)
-        The user can choose the criteria for optimization, so they can choose
-        how low the energy_loss and voltage_deviation should be for it to be valid.
+        The user can choose the criteria for optimization, so thye can choose how low the energy_loss and voltage_deviation should be for it to be valid.
 
         Args:
-            optimization_criteria (str):
-            Criteria for optimization (e.g., 'energy_loss', 'voltage_deviation').
+            optimization_criteria: Criteria for optimization, either 'energy_loss' or 'voltage_deviation'.
 
         Returns:
-            tuple: Optimal tap position and corresponding performance metrics.
+            Tuple of optimal tap position (node id) and corresponding performance metrics.
         """
-        pass
+        # Infer node amount from network description
+        node_amount = pd.DataFrame([node.tolist() for node in self.pgm_input["node"]])[0].max()
+
+        # Initialize criterion variables
+        criterion = -1
+        criterion_node_id = -1
+        # Copy network description
+        pgm_input = self.pgm_input
+        # Run batch power flow on all nodes to find optimal tap position
+        for x in range(1, node_amount + 1):
+            pgm_input["transformer"][0][2] = x
+            processor = pgm_p.PgmProcessor(
+                pgm_input, self.active_load_profile, self.reactive_load_profile
+            )
+            processor.create_update_model()
+            processor.run_batch_process()
+            [aggregate1, aggregate2] = processor.get_aggregate_results()
+            if optimization_criterion == "energy_loss":
+                result = aggregate2["Total_Loss"].sum()
+            elif optimization_criterion == "voltage_deviation":
+                result = aggregate1["Max_Voltage"].mean() + aggregate1["Min_Voltage"].mean() - 2
+            else:
+                break
+            if criterion == -1:
+                criterion = result
+                criterion_node_id = x
+            elif result < criterion:
+                criterion = result
+                criterion_node_id = x
+
+        return tuple([criterion_node_id, criterion])
 
     def EV_penetration_level(self, penetration_level: float, display=False):
         """
@@ -279,13 +299,12 @@ class LV_grid:
         an EV charging profile to add to the sym_load of that house.
         Every profile can not be used twice ->
         there will be enough profiles to cover all of sym_load.
-
+        
         Last: Get the two aggregation tables using Assignment 2 and return these.
 
         Args:
             penetration_level (float):
             Percentage of houses with an Electric Vehicle (EV) charger. -> user input
-
         Returns:
             Two aggregation tables using Assignment 2.
 
@@ -311,7 +330,6 @@ class LV_grid:
 
         # Use the instance to know which houses for which feeder
         # See which lines are feeders and which nodes/houses are connected
-
         # random.seed(0)
         feeder_nodes = {}
         feeders = []
@@ -393,6 +411,13 @@ class LV_grid:
         return self.__EV_penetration_level_evaluate(display)
 
     def __EV_penetration_level_evaluate(self, display=False) -> list[pd.DataFrame, pd.DataFrame]:
+        """
+        Evaluate the time-series batch power flow calculation on the EV-profiled network.
+        Args:
+            display: if True, the Pandas aggregate DataFrames will be displayed
+        Returns:
+            List of two aggregate DataFrames
+        """
         processor = pgm_p.PgmProcessor(
             self.pgm_input, self.active_load_profile_ev, self.reactive_load_profile_ev
         )
@@ -418,10 +443,8 @@ class LV_grid:
         (Every row of this table is a scenario with a different alternative line connected.)
         If there are no alternatives, it should return an emtpy table with the correct format
         and titles in the columns and rows.
-
         Args:
             line_id (int): The uses will give a line_id that will be disconnected.
-
         Returns:
             Table with results of every scenario with a different alternative line connected.
         """
@@ -484,16 +507,15 @@ class LV_grid:
             df_line_loss = aggregate_results[1]
 
             # Find index of max loading row
-            max_index = df_line_loss["max_loading"].idxmax()
+            max_index = df_line_loss["Max_Loading"].idxmax()
             # Use index to save max loading row
             max_row = df_line_loss.loc[max_index]
 
             # Put data in output dataframe
             df_output.loc[index, "alternative_edge"] = alternative_edge
-            df_output.loc[index, "max_loading"] = max_row["max_loading"]
+            df_output.loc[index, "max_loading"] = max_row["Max_Loading"]
             df_output.loc[index, "max_loading_line"] = max_row.name
-            df_output.loc[index, "timestamp_max"] = max_row["timestamp_max"]
+            df_output.loc[index, "timestamp_max"] = max_row["Max_Loading_Timestamp"]
 
         df_output.set_index("alternative_edge", inplace=True)
         return df_output
-

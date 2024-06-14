@@ -135,9 +135,7 @@ class EdgeAlreadyDisabledError(Exception):
 
 class GraphProcessor:
     """
-    General documentation of this class.
-    You need to describe the purpose of this class and the functions in it.
-    We are using an undirected graph in the processor.
+    General documentation of this class. We are using an undirected graph in the processor.
     """
 
     def __init__(
@@ -279,7 +277,6 @@ class GraphProcessor:
                 edge_vertex_id_pairs_enabled_after.append(
                     edge_vertex_id_pairs_enabled_before[edge_index]
                 )
-
         # Step 2: Calculate the new islands
         ## Island calculation after
         graph = nx.Graph()
@@ -292,7 +289,6 @@ class GraphProcessor:
             list_of_islands_after.append(list(c))
 
         output_list = []
-
         # Step 3: Check which remaining islands contain the source vertex, the other one
         # IS the output
         # We loop through all the islands, if an island contains the source vertex it is removed,
