@@ -235,26 +235,51 @@ class LV_grid:
         # ------------------------------------------------
 
 
-    def optimal_tap_position(self, optimization_criteri: str):
+    def optimal_tap_position(self, optimization_criterion: str) -> tuple[int, float]:
         """
         Optimize the tap position of the transformer in the LV grid.
-        Run a one time power flow calculation on every possible tap postition
-        for every timestamp
-        (https://power-grid-model.readthedocs.io/en/stable/examples/Transformer%20Examples.html).
-        The most opmtimized tap position should have the min total energy loss
-        of all lines and whole period and min. deviation of p.u. node voltages w.r.t. 1 p.u.
+        Run a one time power flow calculation on every possible tap postition for every timestamp (https://power-grid-model.readthedocs.io/en/stable/examples/Transformer%20Examples.html).
+        The most opmtimized tap position should have the min total energy loss of all lines and whole period and min. deviation of p.u. node voltages w.r.t. 1 p.u.
         (We think that total energy loss has more importance than the Delta p.u.)
-        The user can choose the criteria for optimization, so they can choose
-        how low the energy_loss and voltage_deviation should be for it to be valid.
+        The user can choose the criteria for optimization, so thye can choose how low the energy_loss and voltage_deviation should be for it to be valid.
 
         Args:
-            optimization_criteria (str):
-            Criteria for optimization (e.g., 'energy_loss', 'voltage_deviation').
+            optimization_criteria: Criteria for optimization, either 'energy_loss' or 'voltage_deviation'.
 
         Returns:
-            tuple: Optimal tap position and corresponding performance metrics.
+            Tuple of optimal tap position (node id) and corresponding performance metrics.
         """
-        pass
+        # Infer node amount from network description
+        node_amount = pd.DataFrame([node.tolist() for node in self.pgm_input["node"]])[0].max()
+
+        # Initialize criterion variables
+        criterion = -1
+        criterion_node_id = -1
+        # Copy network description
+        pgm_input = self.pgm_input
+        # Run batch power flow on all nodes to find optimal tap position
+        for x in range(1, node_amount + 1):
+            pgm_input["transformer"][0][2] = x
+            processor = pgm_p.PgmProcessor(
+                pgm_input, self.active_load_profile, self.reactive_load_profile
+            )
+            processor.create_update_model()
+            processor.run_batch_process()
+            [aggregate1, aggregate2] = processor.get_aggregate_results()
+            if optimization_criterion == "energy_loss":
+                result = aggregate2["Total_Loss"].sum()
+            elif optimization_criterion == "voltage_deviation":
+                result = aggregate1["Max_Voltage"].mean() + aggregate1["Min_Voltage"].mean() - 2
+            else:
+                break
+            if criterion == -1:
+                criterion = result
+                criterion_node_id = x
+            elif result < criterion:
+                criterion = result
+                criterion_node_id = x
+
+        return tuple([criterion_node_id, criterion])
 
     def EV_penetration_level(self, penetration_level: float, display=False):
         """
