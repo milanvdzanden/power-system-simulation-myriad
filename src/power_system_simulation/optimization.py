@@ -261,7 +261,7 @@ class LVGrid:
         """
         pass
 
-   def EV_penetration_level(self, penetration_level: float, display=False):
+    def EV_penetration_level(self, penetration_level: float, display=False):
         """
         Randomly adding EV charging profiles according to a
         couple criteria using the input 'penetration_level'.
