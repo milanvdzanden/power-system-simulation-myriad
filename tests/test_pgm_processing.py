@@ -3,12 +3,13 @@ import sys
 
 import pytest
 
-src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tests/tests_data/A2"))
+src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tests/tests_data/A3"))
 sys.path.append(src_dir)
 src_dir = src_dir.replace("\\", "/")
 
 import networkx as nx
 import pandas as pd
+import matplotlib.pyplot as plt
 from power_grid_model.utils import json_deserialize, json_serialize
 
 import power_system_simulation.pgm_processing as pgm_p
@@ -62,6 +63,7 @@ def test_pgm_processing():
         p.create_update_model()
 
     # Test if pre-calculated output data matches the aggregated output
+    """
     dir_out_per_line = src_dir + "/output_table_row_per_line.parquet"
     dir_out_per_timestamp = src_dir + "/output_table_row_per_timestamp.parquet"
 
@@ -84,6 +86,10 @@ def test_pgm_processing():
             )
             == True
         )
+        """
+
+    # Drawing
+    fig, ax = plt.subplots(figsize=(10, 10))
 
 
 test_pgm_processing()

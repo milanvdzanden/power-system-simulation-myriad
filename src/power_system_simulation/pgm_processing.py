@@ -7,7 +7,9 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
+import networkx as nx
 import power_grid_model as pgm
+import matplotlib
 
 # from power_grid_model.validation import *
 from power_grid_model import CalculationMethod
@@ -81,6 +83,10 @@ class PgmProcessor:
         self.time_series_mutation = 0
         self.output_data = 0
 
+        # Indicate that the graph for drawing aggregate and output data is not ready
+        self.draw_ready = False
+        self.output_ready = False
+
     def create_update_model(
         self, use_active_load_profile: bool = None, use_reactive_load_profile: bool = None
     ) -> None:
@@ -139,6 +145,7 @@ class PgmProcessor:
             update_data=self.time_series_mutation,
             calculation_method=CalculationMethod.newton_raphson,
         )
+        self.output_ready = True
 
     def get_aggregate_results(self) -> list[pd.DataFrame, pd.DataFrame]:
         """
@@ -274,3 +281,219 @@ class PgmProcessor:
         except:
             return False
         return False
+
+    def draw_to_networkx(self, aggregate_results: list[pd.DataFrame, pd.DataFrame], draw_ax) -> None:
+        """
+        Creates a NetworkX graph specifically for drawing, assigning attributes
+        to nodes (bues) and edges (lines) to differentiate them in drawing.
+
+        Once this method is called, the class object is ready for drawing.
+        Args:
+            aggregate_results: aggregate results from power flow analysis; obtained with
+                other functions
+        """
+        # Initialize internal variables
+        self.draw_g = nx.Graph()
+        self.draw_aggregate_table = aggregate_results
+        self.draw_ax = draw_ax
+
+        if 'node' in self.pgm_input:
+            # Add all nodes, based on "id".
+            for node in self.pgm_input['node']:
+                self.draw_g.add_node(node[0], type='default')
+
+        if 'sym_load' in self.pgm_input and 'source' in self.pgm_input:
+            # Classify nodes based on source or load
+            for sym_load in self.pgm_input['sym_load']:
+                self.draw_g.nodes[sym_load[1]].update({'type': 'sym_load'})
+            for source in self.pgm_input['source']:
+                self.draw_g.nodes[source[1]].update({'type': 'source'})
+
+        if 'line' in self.pgm_input:
+            # Add all edges/lines, based on "from_node", "to_node".
+            for line in self.pgm_input['line']:
+                # Bus-Bus or Bus-Load node
+                if nx.get_node_attributes(self.draw_g, 'type')[line[2]] == 'sym_load':
+                    self.draw_g.add_edge(line[1], line[2], id=line[0], type='to_load')
+                else:
+                    self.draw_g.add_edge(line[1], line[2], id=line[0], type='bus_bus')
+                # Enabled or disabled edge
+                if (line[3] == 0 or line[4] == 0):
+                    self.draw_g.edges[line[1], line[2]].update({'enabled': False})
+                else:
+                    self.draw_g.edges[line[1], line[2]].update({'enabled': True})
+
+        if 'transformer' in self.pgm_input:
+            # Add transformer lines (these are separate in the data from the lines)
+            for transformer in self.pgm_input['transformer']:
+                self.draw_g.add_edge(transformer[1], transformer[2], id=transformer[0], type='transformer')
+
+        # Optional validity checks
+        self.draw_ready = True
+
+    def draw_init(self):
+        """
+        Internal method to avoid redunant repeating
+        creations of drawing layouts and variables.
+        
+        Kamada Kawai layout has been found to be the most interesting-looking layout
+        Planar and BFS layouts are also good in their own way, but struggle with
+        Accurately displaying large networks
+        """
+        if self.draw_ready: 
+            self.draw_pos = nx.kamada_kawai_layout(self.draw_g)
+
+            self.draw_node_size = 100
+            self.draw_node_connecting_size = 300
+            self.draw_line_width = 2.1
+            self.draw_line_disabled_width = 0.7
+        else: raise SystemError('Drawing network is uninitialized')
+
+    def __draw_basic(self):
+        """
+        Internal method that draws an uncolored, single-frame for a network.
+        Used repeatedly within animations.
+        """
+        if not self.draw_ready: raise SystemError('Drawing network is uninitialized')
+         # --- --- ---
+
+        # Draw generic (connection) nodes
+        draw_node_list = [key for key, value in nx.get_node_attributes(self.draw_g, 'type').items() if value == 'default']
+        nx.draw_networkx_nodes(self.draw_g, ax=self.draw_ax, nodelist=draw_node_list, pos=self.draw_pos, node_size = self.draw_node_connecting_size, node_shape = '|', label='Buses', node_color='k')
+        # Draw load nodes
+        draw_node_list = [key for key, value in nx.get_node_attributes(self.draw_g, 'type').items() if value == 'sym_load']
+        nx.draw_networkx_nodes(self.draw_g, ax=self.draw_ax, nodelist=draw_node_list, pos=self.draw_pos, node_size = 0)
+        # Draw source nodes
+        draw_node_list = [key for key, value in nx.get_node_attributes(self.draw_g, 'type').items() if value == 'source']
+        nx.draw_networkx_nodes(self.draw_g, ax=self.draw_ax, nodelist=draw_node_list, pos=self.draw_pos, node_size = self.draw_node_size, node_shape = 'o', label="Sources", node_color='k')
+
+        # Draw bus-load lines (assume all enabled)
+        draw_edge_list_bl = [key for key, value in nx.get_edge_attributes(self.draw_g, 'type').items() if value == 'to_load']
+        nx.draw_networkx_edges(self.draw_g, ax=self.draw_ax, edgelist=draw_edge_list_bl, pos=self.draw_pos, node_size = self.draw_node_connecting_size, width = self.draw_line_width, label="Symmetrical Loads", arrows=True, arrowstyle='->', edge_color='brown')
+        
+        draw_edge_enabled = [key for key, value in nx.get_edge_attributes(self.draw_g, 'enabled').items() if value == True]
+        # Draw enabled bus-bus lines
+        draw_edge_list_bb = [key for key, value in nx.get_edge_attributes(self.draw_g, 'type').items() if value == 'bus_bus' if key in draw_edge_enabled]
+        nx.draw_networkx_edges(self.draw_g, ax=self.draw_ax, edgelist=draw_edge_list_bb, pos=self.draw_pos, node_size = self.draw_node_connecting_size, width = self.draw_line_width, label="Lines", connectionstyle='angle,angleA=-90,angleB=180', arrows=True)
+        # Draw disabled bus-bus lines
+        draw_edge_list_bb = [key for key, value in nx.get_edge_attributes(self.draw_g, 'type').items() if value == 'bus_bus' if key not in draw_edge_enabled]
+        nx.draw_networkx_edges(self.draw_g, ax=self.draw_ax, edgelist=draw_edge_list_bb, pos=self.draw_pos, node_size = self.draw_node_connecting_size, width = self.draw_line_disabled_width, edge_color='grey', label="Lines (disabled)")
+        # Draw transformer lines
+        draw_edge_list_t = [key for key, value in nx.get_edge_attributes(self.draw_g, 'type').items() if value == 'transformer']
+        nx.draw_networkx_edges(self.draw_g, ax=self.draw_ax, edgelist=draw_edge_list_t, pos=self.draw_pos, node_size = self.draw_node_size, style='dashed', width=self.draw_line_width, label="Transformer Lines")
+
+        # Draw load labels
+        nx.draw_networkx_labels(self.draw_g, ax=self.draw_ax, pos=self.draw_pos, verticalalignment='top', font_size=8, font_color = 'brown', labels={key: key for key, value in nx.get_node_attributes(self.draw_g, 'type').items() if value == 'sym_load'})
+        # Draw bus labels
+        nx.draw_networkx_labels(self.draw_g, ax=self.draw_ax, pos=self.draw_pos, horizontalalignment='left', font_size=8, font_color = 'black', labels={key: key for key, value in nx.get_node_attributes(self.draw_g, 'type').items() if value == 'default'})
+
+    def __draw_timelapse_power_flow(self, frame: int) -> None:
+        pass
+
+    def __draw_timelapse_node_loading(self, frame:int) -> None:
+        # Get maximum voltage and where
+        node_maxv = [int(self.draw_aggregate_table[0].iloc[frame, :]['Max_Voltage_Node'])]
+        maxv = "%.3f" % round(self.draw_aggregate_table[0].iloc[frame, :]['Max_Voltage'], 3)
+        # Get minimum voltage and where
+        node_minv = [int(self.draw_aggregate_table[0].iloc[frame, :]['Min_Voltage_Node'])]
+        minv ="%.3f" % round(self.draw_aggregate_table[0].iloc[frame, :]['Min_Voltage'], 3)
+        # Draw maximum/minimum voltage
+        maxv_label = "> Max Voltage : " + maxv
+        nx.draw_networkx_nodes(self.draw_g, ax=self.draw_ax, nodelist = node_maxv, pos=self.draw_pos, node_size = self.draw_node_size, node_shape = 's', label=maxv_label, node_color='red')
+        minv_label = "> Min Voltage : " + minv
+        nx.draw_networkx_nodes(self.draw_g, ax=self.draw_ax, nodelist = node_minv, pos=self.draw_pos, node_size = self.draw_node_size, node_shape = 's', label=minv_label, node_color='green')
+        return
+
+    def draw_timelapse_power_flow(self, frame: int) -> None:
+        """
+        Uses MatPlotLib to draw an animation for the power flow.
+        Args:
+            frame: integer, handled by matplotlib.animation.FuncAnimation 
+        """
+        if not self.draw_ready or not self.output_ready: raise SystemError('Drawing network is uninitialized or output is not calculated')
+        self.draw_ax.clear()
+        self.__draw_basic()
+        self.__draw_timelapse_power_flow(frame - 1)
+
+        # Draw legend
+        self.draw_ax.legend(loc=(1.05, 0))
+
+    def draw_timelapse_node_loading(self, frame: int) -> None:
+        """
+        Uses MatPlotLib to draw an animation for the node (bus) voltage loading
+        Args:
+            frame: integer, handled by matplotlib.animation.FuncAnimation 
+        """
+        if not self.draw_ready: raise SystemError('Drawing network is uninitialized')
+        self.draw_ax.clear()
+        self.__draw_basic()
+        self.__draw_timelapse_node_loading(frame - 1)
+        # Draw legend
+        self.draw_ax.legend(loc=(1.05, 0))
+
+    def draw_static_line_loading(self, type: str) -> None:
+        """
+        Uses MatPlotLib to draw a static frame representation of the line loading, colored by loading.
+        Args:
+            type: Show total loss, maximum loading, or minimum loading
+            Valid arguments: 'power_loss', 'max_loading', 'min_loading'.
+        """
+        if not self.draw_ready: raise SystemError('Drawing network is uninitialized')
+        self.draw_ax.clear()
+        self.draw_init()
+        self.__draw_basic()
+        
+        # Get list of all generic lines (to color)
+        line_list_keys = {key for key, value in nx.get_edge_attributes(self.draw_g, 'type').items() if value != 'transformer'}
+        line_list = {key:value for key, value in nx.get_edge_attributes(self.draw_g, 'id').items() if key in line_list_keys}
+        line_list_colors = {}
+
+        match type:
+            case 'power_loss':
+                for edge_id, row in self.draw_aggregate_table[1].iterrows():
+                    for key, value in line_list.items():
+                        if value == edge_id:
+                            line_list_colors[key] = row['Total_Loss']
+                self.draw_ax.set_title("Total power loss per line for the network, whole timeline")
+                bar_title = 'Total Power Loss [kWh]'
+            case 'max_loading':
+                for edge_id, row in self.draw_aggregate_table[1].iterrows():
+                    for key, value in line_list.items():
+                        if value == edge_id:
+                            line_list_colors[key] = row['Max_Loading']
+                self.draw_ax.set_title("Maximum loading per line for the network, whole timeline")
+                bar_title = 'Maximum Loading [p.u]'
+            case 'min_loading':
+                for edge_id, row in self.draw_aggregate_table[1].iterrows():
+                    for key, value in line_list.items():
+                        if value == edge_id:
+                            line_list_colors[key] = row['Min_Loading']
+                self.draw_ax.set_title("Minimum loading per line for the network, whole timeline")
+                bar_title = 'Minimum Loading [p.u]'
+            case _:
+                raise ValueError('Invalid static line drawing representation type provided.')
+            
+        # Set color boundaries for colormap
+        colors_value_max = max(line_list_colors.values())
+        colors_value_min = min(line_list_colors.values())
+
+        # Create and paint over bus-bus connections
+        line_list_colors_key_bb =  [key for key, value in line_list_colors.items() if key in [key for key, value in nx.get_edge_attributes(self.draw_g, 'type').items() if value == 'bus_bus']]
+        line_list_colors_value_bb = [value for key, value in line_list_colors.items() if key in [key for key, value in nx.get_edge_attributes(self.draw_g, 'type').items() if value == 'bus_bus']]
+        nx.draw_networkx_edges(self.draw_g, ax=self.draw_ax, edgelist=line_list_colors_key_bb, pos=self.draw_pos, node_size = self.draw_node_size, edge_color=line_list_colors_value_bb, edge_cmap=matplotlib.colormaps.get_cmap('Reds'), connectionstyle='angle,angleA=-90,angleB=180', arrows=True, edge_vmin=colors_value_min, edge_vmax=colors_value_max, width=3)
+        # Create and paint over bus-load connections
+        line_list_colors_key_bl =  [key for key, value in line_list_colors.items() if key in [key for key, value in nx.get_edge_attributes(self.draw_g, 'type').items() if value == 'to_load']]
+        line_list_colors_value_bl = [value for key, value in line_list_colors.items() if key in [key for key, value in nx.get_edge_attributes(self.draw_g, 'type').items() if value == 'to_load']]
+        nx.draw_networkx_edges(self.draw_g, ax=self.draw_ax, edgelist=line_list_colors_key_bl, pos=self.draw_pos, node_size = self.draw_node_size, edge_color=line_list_colors_value_bl, edge_cmap=matplotlib.colormaps.get_cmap('Reds'), arrows=True, arrowstyle='->', edge_vmin=colors_value_min, edge_vmax=colors_value_max, width=3.5)
+
+        # Draw maximum/minimum record (Scuffy) - don't round, because the numbers are very small
+        max_label = "> Max : " + str(colors_value_max)
+        matplotlib.pyplot.plot([], [], ' ', label=max_label)
+        min_label = "> Min : " + str(colors_value_min)
+        matplotlib.pyplot.plot([], [], ' ', label=min_label)
+        sm = matplotlib.pyplot.cm.ScalarMappable(cmap=matplotlib.colormaps.get_cmap('Reds'), norm=matplotlib.pyplot.Normalize(vmin = colors_value_min, vmax=colors_value_max))
+        sm._A = []
+        matplotlib.pyplot.colorbar(sm, ax=self.draw_ax, shrink=0.5, label=bar_title)
+
+        # Draw legend
+        self.draw_ax.legend(loc=(1.05, 0))
