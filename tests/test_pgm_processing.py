@@ -7,9 +7,9 @@ src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tests/t
 sys.path.append(src_dir)
 src_dir = src_dir.replace("\\", "/")
 
+import matplotlib.pyplot as plt
 import networkx as nx
 import pandas as pd
-import matplotlib.pyplot as plt
 from power_grid_model.utils import json_deserialize, json_serialize
 
 import power_system_simulation.pgm_processing as pgm_p

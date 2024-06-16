@@ -5,11 +5,11 @@ power-grid-model package as the core. Additional functions are included to displ
 
 from typing import Union
 
+import matplotlib
+import networkx as nx
 import numpy as np
 import pandas as pd
-import networkx as nx
 import power_grid_model as pgm
-import matplotlib
 
 # from power_grid_model.validation import *
 from power_grid_model import CalculationMethod

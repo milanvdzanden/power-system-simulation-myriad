@@ -11,8 +11,10 @@ src_dir = src_dir.replace("\\", "/")
 
 import copy as copy
 import json
+
 import networkx as nx
 from power_grid_model.utils import json_deserialize, json_serialize
+
 import power_system_simulation.graph_processing as pss
 import power_system_simulation.optimization as psso
 
