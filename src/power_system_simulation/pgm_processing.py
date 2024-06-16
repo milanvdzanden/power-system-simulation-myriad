@@ -11,6 +11,8 @@ import numpy as np
 import pandas as pd
 import power_grid_model as pgm
 
+import pytest
+
 # from power_grid_model.validation import *
 from power_grid_model import CalculationMethod
 from power_grid_model.utils import json_deserialize, json_serialize
