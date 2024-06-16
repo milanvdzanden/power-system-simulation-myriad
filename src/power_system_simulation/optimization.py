@@ -418,12 +418,12 @@ class LV_grid:
         Returns:
             List of two aggregate DataFrames
         """
-        processor = pgm_p.PgmProcessor(
+        self.processor = pgm_p.PgmProcessor(
             self.pgm_input, self.active_load_profile_ev, self.reactive_load_profile_ev
         )
-        processor.create_update_model()
-        processor.run_batch_process()
-        aggregate_results = processor.get_aggregate_results()
+        self.processor.create_update_model()
+        self.processor.run_batch_process()
+        aggregate_results = self.processor.get_aggregate_results()
         if display:
             print(aggregate_results[0])
             print(aggregate_results[1])
