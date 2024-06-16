@@ -407,6 +407,9 @@ class LV_grid:
                     self.active_load_profile_ev[id1] = self.ev_active_profile[House_Profile_Id[id2]]
                     self.reactive_load_profile_ev[id1] = 0
 
+        # Save in-class for plotting if needed
+        self.House_Profile_Id = House_Profile_Id
+
         # Run the batch calculation, provide True as arg to print DataFrame
         return self.__EV_penetration_level_evaluate(display)
 

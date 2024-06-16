@@ -281,7 +281,7 @@ class PgmProcessor:
             return False
         return False
 
-    def draw_to_networkx(self, aggregate_results: list[pd.DataFrame, pd.DataFrame], draw_ax: matplotlib.axes) -> None:
+    def draw_to_networkx(self, aggregate_results: list[pd.DataFrame, pd.DataFrame], draw_ax: matplotlib) -> None:
         """
         Creates a NetworkX graph specifically for drawing, assigning attributes
         to nodes (bues) and edges (lines) to differentiate them in drawing.
@@ -588,7 +588,7 @@ class PgmProcessor:
         # Draw legend
         self.draw_ax.legend(loc=(1.05, 0))
 
-    def draw_static_simple_load_active(self, data: dict[str, np.ndarray], load_id: int, ax: matplotlib.axes) -> None:
+    def draw_static_simple_load_active(self, data: dict[str, np.ndarray], load_id: int, ax) -> None:
         """
         Uses MatPlotLib to draw a static, simple line plot of active loading for a specified symmetrical load.
         Args:
