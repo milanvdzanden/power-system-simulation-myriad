@@ -1,6 +1,7 @@
 """
 Building a package with low voltage grid analytics functions.
 """
+
 import copy
 import math
 import random
@@ -28,6 +29,7 @@ class LvGridOneTransformerAndSource(Exception):
 
     def __init__(self):
         Exception.__init__(self, "The LV_Grid does not have one source and one tranformer.")
+
 
 class LVFeederError(Exception):
     """
@@ -77,6 +79,7 @@ class ProfilesDontMatchError(Exception):
             + str(mode),
         )
 
+
 class EvProfilesDontMatchSymLoad(Exception):
 
     def __init__(self):
@@ -87,6 +90,7 @@ class EvProfilesDontMatchSymLoad(Exception):
           self: passes exception
         """
         Exception.__init__(self, "The amount of EVProfiles do not match the amount of SymLoads.")
+
 
 class LV_grid:
     """
@@ -235,7 +239,6 @@ class LV_grid:
             raise EvProfilesDontMatchSymLoad()
         # ------------------------------------------------
 
-
     def optimal_tap_position(self, optimization_criterion: str) -> tuple[int, float]:
         """
         Optimize the tap position of the transformer in the LV grid.
@@ -300,7 +303,7 @@ class LV_grid:
         an EV charging profile to add to the sym_load of that house.
         Every profile can not be used twice ->
         there will be enough profiles to cover all of sym_load.
-        
+
         Last: Get the two aggregation tables using Assignment 2 and return these.
 
         Args:
