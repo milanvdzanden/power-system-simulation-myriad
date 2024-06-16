@@ -145,7 +145,6 @@ class PgmProcessor:
             update_data=self.time_series_mutation,
             calculation_method=CalculationMethod.newton_raphson,
         )
-        self.output_ready = True
 
     def get_aggregate_results(self) -> list[pd.DataFrame, pd.DataFrame]:
         """
@@ -282,7 +281,7 @@ class PgmProcessor:
             return False
         return False
 
-    def draw_to_networkx(self, aggregate_results: list[pd.DataFrame, pd.DataFrame], draw_ax) -> None:
+    def draw_to_networkx(self, aggregate_results: list[pd.DataFrame, pd.DataFrame], draw_ax: matplotlib.axes) -> None:
         """
         Creates a NetworkX graph specifically for drawing, assigning attributes
         to nodes (bues) and edges (lines) to differentiate them in drawing.
@@ -291,6 +290,8 @@ class PgmProcessor:
         Args:
             aggregate_results: aggregate results from power flow analysis; obtained with
                 other functions
+            draw_ax: matplotlib axes object for drawing, used to initialize the internal
+                class variable
         """
         # Initialize internal variables
         self.draw_g = nx.Graph()
@@ -328,10 +329,14 @@ class PgmProcessor:
             for transformer in self.pgm_input['transformer']:
                 self.draw_g.add_edge(transformer[1], transformer[2], id=transformer[0], type='transformer')
 
+        # Create colormaps (since <0.1 tend to disappear in exported gif, most likely due to compression)
+        self.cmap_reds = matplotlib.colors.LinearSegmentedColormap.from_list("cmap_reds", matplotlib.pyplot.cm.Reds(np.linspace(0.2, 1.0)))
+        self.cmap_blues = matplotlib.colors.LinearSegmentedColormap.from_list("cmap_blues", matplotlib.pyplot.cm.Blues(np.linspace(0.2, 1.0)))
+
         # Optional validity checks
         self.draw_ready = True
 
-    def draw_init(self):
+    def draw_init(self) -> None:
         """
         Internal method to avoid redunant repeating
         creations of drawing layouts and variables.
@@ -347,7 +352,56 @@ class PgmProcessor:
             self.draw_node_connecting_size = 300
             self.draw_line_width = 2.1
             self.draw_line_disabled_width = 0.7
+
+
         else: raise SystemError('Drawing network is uninitialized')
+
+    def draw_init_power_flow(self, draw_bus = 'u_pu') -> None:
+        """
+        Initializes the power flow to avoid re-calculating the color scheme for the animation
+        every frame.
+        Args:
+            draw_bus: chosen quantity to color-map to on the animation for buses
+        """
+        if not self.draw_ready: raise SystemError('Drawing network is uninitialized or output is not calculated')
+        # Initialize variables
+        self.draw_pf_max_line = 0
+        self.draw_pf_min_line = 1e33
+        self.draw_pf_max_load = 0
+        self.draw_pf_min_load = 1e33
+
+        self.draw_bus = draw_bus
+
+        # Get maximum line loading over time
+        for x in self.output_data['line']:
+            if 100*max(x['loading'] > self.draw_pf_max_line): self.draw_pf_max_line = 100*max(x['loading'])
+        # Get minimum line loading over time
+        for x in self.output_data['line']:
+            if 100*min(x['loading'] < self.draw_pf_min_line): self.draw_pf_min_line = 100*min(x['loading'])
+        # Get maximum sym load quantity over time
+        for x in self.output_data['node']:
+            if max(x[draw_bus] > self.draw_pf_max_load): self.draw_pf_max_load = max(x[draw_bus])
+        # Get minimum sym load quantity over time
+        for x in self.output_data['node']:
+            if min(x[draw_bus] < self.draw_pf_min_load): self.draw_pf_min_load = min(x[draw_bus])
+        
+        # Get list of bus-bus lines. Assumed that these are valid lines, in same order as self.draw_g.edges()
+        draw_pf_line_bb_mask = [key for key, value in nx.get_edge_attributes(self.draw_g, 'type').items() if value == 'bus_bus']
+        self.draw_pf_line_bb = {key: value for key, value in nx.get_edge_attributes(self.draw_g, 'id').items() if key in draw_pf_line_bb_mask}
+        # Get list of bus-load lines. Assumed that these are valid lines, in same order as self.draw_g.edges()
+        draw_pf_line_bl_mask = [key for key, value in nx.get_edge_attributes(self.draw_g, 'type').items() if value == 'to_load']
+        self.draw_pf_line_bl = {key: value for key, value in nx.get_edge_attributes(self.draw_g, 'id').items() if key in draw_pf_line_bl_mask}
+        # Draw bus draw on-top of every node (source, bus, sym_load)
+
+        # Add colormaps
+        sm = matplotlib.pyplot.cm.ScalarMappable(cmap=self.cmap_reds, norm=matplotlib.pyplot.Normalize(vmin = self.draw_pf_min_line, vmax=self.draw_pf_max_line))
+        sm._A = []
+        matplotlib.pyplot.colorbar(sm, ax=self.draw_ax, shrink=0.5, label='Line loading [%]', anchor=(1.5, 0.3))
+        sm = matplotlib.pyplot.cm.ScalarMappable(cmap=self.cmap_blues, norm=matplotlib.pyplot.Normalize(vmin = self.draw_pf_min_load, vmax=self.draw_pf_max_load))
+        sm._A = []
+        matplotlib.pyplot.colorbar(sm, ax=self.draw_ax, shrink=0.5, label='Node voltage [p.u.]', anchor=(1.5, 0.3))
+
+        self.output_ready = True
 
     def __draw_basic(self):
         """
@@ -388,9 +442,40 @@ class PgmProcessor:
         nx.draw_networkx_labels(self.draw_g, ax=self.draw_ax, pos=self.draw_pos, horizontalalignment='left', font_size=8, font_color = 'black', labels={key: key for key, value in nx.get_node_attributes(self.draw_g, 'type').items() if value == 'default'})
 
     def __draw_timelapse_power_flow(self, frame: int) -> None:
-        pass
+        """
+        Internal method that draw power-flow related elements.
+        Args:
+            frame: integer, handled by matplotlib.animation.FuncAnimation 
+        """
+        # Initialize variables
+        line_list_colors_value_bb = {}
+        line_list_colors_value_bl = {}
+        node_list_colors_value = []
+
+        # Create and paint over bus-bus connections
+        for index, row in pd.DataFrame(self.output_data['line'][frame]).iterrows():
+            for key, value in self.draw_pf_line_bb.items():
+                if row['id'] == value:
+                    line_list_colors_value_bb[key] = 100*row['loading']
+        nx.draw_networkx_edges(self.draw_g, ax=self.draw_ax, edgelist=line_list_colors_value_bb.keys(), pos=self.draw_pos, node_size = self.draw_node_size, edge_color=line_list_colors_value_bb.values(), edge_cmap=self.cmap_reds, connectionstyle='angle,angleA=-90,angleB=180', arrows=True, edge_vmin=self.draw_pf_min_line, edge_vmax=self.draw_pf_max_line, width=3)
+        # Create and paint over bus-load connections
+        for index, row in pd.DataFrame(self.output_data['line'][frame]).iterrows():
+            for key, value in self.draw_pf_line_bl.items():
+                if row['id'] == value:
+                    line_list_colors_value_bl[key] = 100*row['loading']
+        nx.draw_networkx_edges(self.draw_g, ax=self.draw_ax, edgelist=line_list_colors_value_bl.keys(), pos=self.draw_pos, node_size = self.draw_node_size, edge_color=line_list_colors_value_bl.values(), edge_cmap=self.cmap_reds, arrows=True, arrowstyle='->', edge_vmin=self.draw_pf_min_line, edge_vmax=self.draw_pf_max_line, width=3.5)
+        # Create and paint over nodes (buses, loads, sources)
+        for index, row in pd.DataFrame(self.output_data['node'][frame]).iterrows():
+                    node_list_colors_value.append(row[self.draw_bus])
+        nx.draw_networkx_nodes(self.draw_g, ax=self.draw_ax, pos=self.draw_pos, node_size = 0.25*self.draw_node_size, node_shape = 's', node_color=node_list_colors_value, cmap=matplotlib.colormaps.get_cmap('Blues'), vmin=self.draw_pf_min_load, vmax=self.draw_pf_max_load)
+        return
 
     def __draw_timelapse_node_loading(self, frame:int) -> None:
+        """
+        Internal method that draw node-loading related elements.
+        Args:
+            frame: integer, handled by matplotlib.animation.FuncAnimation 
+        """
         # Get maximum voltage and where
         node_maxv = [int(self.draw_aggregate_table[0].iloc[frame, :]['Max_Voltage_Node'])]
         maxv = "%.3f" % round(self.draw_aggregate_table[0].iloc[frame, :]['Max_Voltage'], 3)
@@ -410,7 +495,8 @@ class PgmProcessor:
         Args:
             frame: integer, handled by matplotlib.animation.FuncAnimation 
         """
-        if not self.draw_ready or not self.output_ready: raise SystemError('Drawing network is uninitialized or output is not calculated')
+        if not self.draw_ready or not self.output_ready: raise SystemError('Drawing network is uninitialized or output is not calculated. Call draw_init_power_flow before animation')
+
         self.draw_ax.clear()
         self.__draw_basic()
         self.__draw_timelapse_power_flow(frame - 1)
@@ -418,6 +504,9 @@ class PgmProcessor:
         # Draw legend
         self.draw_ax.legend(loc=(1.05, 0))
 
+        # Add title
+        self.draw_ax.set_title("Time: " + str(self.draw_aggregate_table[0].index[frame - 1]) + " [" + str(frame) + "]")
+    
     def draw_timelapse_node_loading(self, frame: int) -> None:
         """
         Uses MatPlotLib to draw an animation for the node (bus) voltage loading
@@ -428,6 +517,7 @@ class PgmProcessor:
         self.draw_ax.clear()
         self.__draw_basic()
         self.__draw_timelapse_node_loading(frame - 1)
+
         # Draw legend
         self.draw_ax.legend(loc=(1.05, 0))
 
@@ -480,18 +570,18 @@ class PgmProcessor:
         # Create and paint over bus-bus connections
         line_list_colors_key_bb =  [key for key, value in line_list_colors.items() if key in [key for key, value in nx.get_edge_attributes(self.draw_g, 'type').items() if value == 'bus_bus']]
         line_list_colors_value_bb = [value for key, value in line_list_colors.items() if key in [key for key, value in nx.get_edge_attributes(self.draw_g, 'type').items() if value == 'bus_bus']]
-        nx.draw_networkx_edges(self.draw_g, ax=self.draw_ax, edgelist=line_list_colors_key_bb, pos=self.draw_pos, node_size = self.draw_node_size, edge_color=line_list_colors_value_bb, edge_cmap=matplotlib.colormaps.get_cmap('Reds'), connectionstyle='angle,angleA=-90,angleB=180', arrows=True, edge_vmin=colors_value_min, edge_vmax=colors_value_max, width=3)
+        nx.draw_networkx_edges(self.draw_g, ax=self.draw_ax, edgelist=line_list_colors_key_bb, pos=self.draw_pos, node_size = self.draw_node_size, edge_color=line_list_colors_value_bb, edge_cmap=self.cmap_reds, connectionstyle='angle,angleA=-90,angleB=180', arrows=True, edge_vmin=colors_value_min, edge_vmax=colors_value_max, width=3)
         # Create and paint over bus-load connections
         line_list_colors_key_bl =  [key for key, value in line_list_colors.items() if key in [key for key, value in nx.get_edge_attributes(self.draw_g, 'type').items() if value == 'to_load']]
         line_list_colors_value_bl = [value for key, value in line_list_colors.items() if key in [key for key, value in nx.get_edge_attributes(self.draw_g, 'type').items() if value == 'to_load']]
-        nx.draw_networkx_edges(self.draw_g, ax=self.draw_ax, edgelist=line_list_colors_key_bl, pos=self.draw_pos, node_size = self.draw_node_size, edge_color=line_list_colors_value_bl, edge_cmap=matplotlib.colormaps.get_cmap('Reds'), arrows=True, arrowstyle='->', edge_vmin=colors_value_min, edge_vmax=colors_value_max, width=3.5)
+        nx.draw_networkx_edges(self.draw_g, ax=self.draw_ax, edgelist=line_list_colors_key_bl, pos=self.draw_pos, node_size = self.draw_node_size, edge_color=line_list_colors_value_bl, edge_cmap=self.cmap_reds, arrows=True, arrowstyle='->', edge_vmin=colors_value_min, edge_vmax=colors_value_max, width=3.5)
 
         # Draw maximum/minimum record (Scuffy) - don't round, because the numbers are very small
         max_label = "> Max : " + str(colors_value_max)
         matplotlib.pyplot.plot([], [], ' ', label=max_label)
         min_label = "> Min : " + str(colors_value_min)
         matplotlib.pyplot.plot([], [], ' ', label=min_label)
-        sm = matplotlib.pyplot.cm.ScalarMappable(cmap=matplotlib.colormaps.get_cmap('Reds'), norm=matplotlib.pyplot.Normalize(vmin = colors_value_min, vmax=colors_value_max))
+        sm = matplotlib.pyplot.cm.ScalarMappable(cmap=self.cmap_reds, norm=matplotlib.pyplot.Normalize(vmin = colors_value_min, vmax=colors_value_max))
         sm._A = []
         matplotlib.pyplot.colorbar(sm, ax=self.draw_ax, shrink=0.5, label=bar_title)
 
