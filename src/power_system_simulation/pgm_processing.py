@@ -396,10 +396,10 @@ class PgmProcessor:
         # Add colormaps
         sm = matplotlib.pyplot.cm.ScalarMappable(cmap=self.cmap_reds, norm=matplotlib.pyplot.Normalize(vmin = self.draw_pf_min_line, vmax=self.draw_pf_max_line))
         sm._A = []
-        matplotlib.pyplot.colorbar(sm, ax=self.draw_ax, shrink=0.5, label='Line loading [%]', anchor=(1.5, 0.3))
+        matplotlib.pyplot.colorbar(sm, ax=self.draw_ax, shrink=0.75, label='Line loading [%]', anchor=(0, 1))
         sm = matplotlib.pyplot.cm.ScalarMappable(cmap=self.cmap_blues, norm=matplotlib.pyplot.Normalize(vmin = self.draw_pf_min_load, vmax=self.draw_pf_max_load))
         sm._A = []
-        matplotlib.pyplot.colorbar(sm, ax=self.draw_ax, shrink=0.5, label='Node voltage [p.u.]', anchor=(1.5, 0.3))
+        matplotlib.pyplot.colorbar(sm, ax=self.draw_ax, shrink=0.75, label='Node voltage [p.u.]', anchor=(0.2, 1))
 
         self.output_ready = True
 
@@ -520,6 +520,9 @@ class PgmProcessor:
 
         # Draw legend
         self.draw_ax.legend(loc=(1.05, 0))
+
+        # Add title
+        self.draw_ax.set_title("Time: " + str(self.draw_aggregate_table[0].index[frame - 1]) + " [" + str(frame) + "]")
 
     def draw_static_line_loading(self, type: str) -> None:
         """
