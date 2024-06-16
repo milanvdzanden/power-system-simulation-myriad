@@ -356,7 +356,7 @@ class PgmProcessor:
 
         else: raise SystemError('Drawing network is uninitialized')
 
-    def draw_init_power_flow(self, draw_bus = 'u_pu') -> None:
+    def draw_init_power_flow(self, draw_bus: str = 'u_pu') -> None:
         """
         Initializes the power flow to avoid re-calculating the color scheme for the animation
         every frame.
@@ -587,3 +587,29 @@ class PgmProcessor:
 
         # Draw legend
         self.draw_ax.legend(loc=(1.05, 0))
+
+    def draw_static_simple_load_active(self, data: dict[str, np.ndarray], load_id: int, ax: matplotlib.axes) -> None:
+        """
+        Uses MatPlotLib to draw a static, simple line plot of active loading for a specified symmetrical load.
+        Args:
+            data: output data from a batch power flow analysis
+            load_id: load_id to plot
+            ax: matplotlib axes object to use
+        """
+        # Initialize time series
+        time_series = []
+
+        # Find id to index
+        for index, row in pd.DataFrame(data['sym_load'][0]).iterrows():
+            if row['id'] == load_id:
+                load_index = index
+                break
+
+        # Construct time series
+        for x in enumerate(data['sym_load']):
+           time_series.append(pd.DataFrame(x[1]).loc[load_index, 'p']/1000)
+
+        matplotlib.pyplot.plot(time_series)
+        matplotlib.pyplot.xlabel('Batch number [-]')
+        matplotlib.pyplot.ylabel('Active power on load [kW]')
+        ax.set_title("Active power on symmetrical load " + str(load_id) + " over time")
