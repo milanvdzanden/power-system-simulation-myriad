@@ -26,7 +26,7 @@ def test_downstream_vertices():
         (7, 8),
         (9, 10),
         (1, 11),
-        (4, 8)
+        (4, 8),
     ]
     edge_enabled = [True, True, True, True, True, True, True, False, True, True, True]
     source_vertex_id = 1

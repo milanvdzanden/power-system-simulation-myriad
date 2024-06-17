@@ -1,14 +1,14 @@
 import os
 import sys
 
-import pytest
-
 src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tests/tests_data/A2"))
 sys.path.append(src_dir)
 src_dir = src_dir.replace("\\", "/")
 
+import matplotlib.pyplot as plt
 import networkx as nx
 import pandas as pd
+import pytest
 from power_grid_model.utils import json_deserialize, json_serialize
 
 import power_system_simulation.pgm_processing as pgm_p
@@ -84,6 +84,41 @@ def test_pgm_processing():
             )
             == True
         )
+
+    # Testing drawing
+
+    src_dir2 = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tests/tests_data/A3"))
+    sys.path.append(src_dir2)
+    src_dir2 = src_dir2.replace("\\", "/")
+
+    dir_network_json = src_dir2 + "/input_network_data.json"
+    dir_active_profile = src_dir2 + "/active_power_profile.parquet"
+    dir_reactive_profile = src_dir2 + "/reactive_power_profile.parquet"
+
+    with open(dir_network_json) as fp:
+        data = fp.read()
+    network_data = json_deserialize(data)
+
+    # Read active and reactive load profile from parquet file
+    active_load_profile = pd.read_parquet(dir_active_profile)
+    reactive_load_profile = pd.read_parquet(dir_reactive_profile)
+
+    p = pgm_p.PgmProcessor(network_data, active_load_profile, reactive_load_profile)
+    p.create_update_model()
+    p.run_batch_process()
+    aggregate_results = p.get_aggregate_results()
+
+    fig, ax = plt.subplots(figsize=(1, 1))
+    p.draw_to_networkx(aggregate_results, ax)
+    p.draw_init_power_flow()
+    p.draw_init()
+    p.draw_static_line_loading(criterion="power_loss")
+    p.draw_static_line_loading(criterion="max_loading")
+    p.draw_static_line_loading(criterion="min_loading")
+    p.draw_static_simple_load_active(p.output_data, 13, ax)
+    p.draw_timelapse_power_flow(1)
+    p.draw_timelapse_node_loading(1)
+    # Missing test cases are all the error checks - skip (not expected)
 
 
 test_pgm_processing()

@@ -1,6 +1,7 @@
 """
 Building a package with low voltage grid analytics functions.
 """
+
 import copy
 import math
 import random
@@ -20,6 +21,7 @@ from power_grid_model import *
 import power_system_simulation.graph_processing as pss
 import power_system_simulation.pgm_processing as pgm_p
 
+
 class LvGridOneTransformerAndSource(Exception):
     """
     Error class for class LVGridoneTransformerAndSource
@@ -27,6 +29,7 @@ class LvGridOneTransformerAndSource(Exception):
 
     def __init__(self):
         Exception.__init__(self, "The LV_Grid does not have one source and one tranformer.")
+
 
 class LVFeederError(Exception):
     """
@@ -76,7 +79,11 @@ class ProfilesDontMatchError(Exception):
             + str(mode),
         )
 
-class EvProfilesDontMatchSymLoad(Exception):
+
+class EvProfilesDontMatchSymLoadError(Exception):
+    """
+    Error class for class EvProfilesDontMatchSymLoadError
+    """
 
     def __init__(self):
         """
@@ -86,6 +93,7 @@ class EvProfilesDontMatchSymLoad(Exception):
           self: passes exception
         """
         Exception.__init__(self, "The amount of EVProfiles do not match the amount of SymLoads.")
+
 
 class LV_grid:
     """
@@ -231,20 +239,27 @@ class LV_grid:
         if not len(list(self.ev_active_profile.columns.values)) == (
             len(self.pgm_input["sym_load"])
         ):
-            raise EvProfilesDontMatchSymLoad()
+            raise EvProfilesDontMatchSymLoadError()
         # ------------------------------------------------
-
 
     def optimal_tap_position(self, optimization_criterion: str) -> tuple[int, float]:
         """
         Optimize the tap position of the transformer in the LV grid.
-        Run a one time power flow calculation on every possible tap postition for every timestamp (https://power-grid-model.readthedocs.io/en/stable/examples/Transformer%20Examples.html).
-        The most opmtimized tap position should have the min total energy loss of all lines and whole period and min. deviation of p.u. node voltages w.r.t. 1 p.u.
+
+        Run a one time power flow calculation on every possible tap
+        postition for every timestamp
+        (https://power-grid-model.readthedocs.io/en/stable/examples/Transformer%20Examples.html).
+
+        The most opmtimized tap position should have the min total energy loss of
+        all lines and whole period and min. deviation of p.u. node voltages w.r.t. 1 p.u.
         (We think that total energy loss has more importance than the Delta p.u.)
-        The user can choose the criteria for optimization, so thye can choose how low the energy_loss and voltage_deviation should be for it to be valid.
+
+        The user can choose the criteria for optimization, so thye can choose how low
+        the energy_loss and voltage_deviation should be for it to be valid.
 
         Args:
-            optimization_criteria: Criteria for optimization, either 'energy_loss' or 'voltage_deviation'.
+            optimization_criteria: Criteria for optimization, either 'energy_loss'
+              or 'voltage_deviation'.
 
         Returns:
             Tuple of optimal tap position (node id) and corresponding performance metrics.
@@ -265,11 +280,11 @@ class LV_grid:
             )
             processor.create_update_model()
             processor.run_batch_process()
-            [aggregate1, aggregate2] = processor.get_aggregate_results()
+            aggregate = processor.get_aggregate_results()
             if optimization_criterion == "energy_loss":
-                result = aggregate2["Total_Loss"].sum()
+                result = aggregate[1]["Total_Loss"].sum()
             elif optimization_criterion == "voltage_deviation":
-                result = aggregate1["Max_Voltage"].mean() + aggregate1["Min_Voltage"].mean() - 2
+                result = aggregate[0]["Max_Voltage"].mean() + aggregate[0]["Min_Voltage"].mean() - 2
             else:
                 break
             if criterion == -1:
@@ -299,7 +314,7 @@ class LV_grid:
         an EV charging profile to add to the sym_load of that house.
         Every profile can not be used twice ->
         there will be enough profiles to cover all of sym_load.
-        
+
         Last: Get the two aggregation tables using Assignment 2 and return these.
 
         Args:
@@ -407,6 +422,9 @@ class LV_grid:
                     self.active_load_profile_ev[id1] = self.ev_active_profile[House_Profile_Id[id2]]
                     self.reactive_load_profile_ev[id1] = 0
 
+        # Save in-class for plotting if needed
+        self.House_Profile_Id = House_Profile_Id
+
         # Run the batch calculation, provide True as arg to print DataFrame
         return self.__EV_penetration_level_evaluate(display)
 
@@ -418,12 +436,12 @@ class LV_grid:
         Returns:
             List of two aggregate DataFrames
         """
-        processor = pgm_p.PgmProcessor(
+        self.processor = pgm_p.PgmProcessor(
             self.pgm_input, self.active_load_profile_ev, self.reactive_load_profile_ev
         )
-        processor.create_update_model()
-        processor.run_batch_process()
-        aggregate_results = processor.get_aggregate_results()
+        self.processor.create_update_model()
+        self.processor.run_batch_process()
+        aggregate_results = self.processor.get_aggregate_results()
         if display:
             print(aggregate_results[0])
             print(aggregate_results[1])
