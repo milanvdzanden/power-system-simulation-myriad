@@ -70,7 +70,7 @@ class PgmProcessor:
         self.active_load_profile = active_profile
         self.reactive_load_profile = reactive_profile
 
-        pgm.validation.assert_valid_input_data(self.pgm_input)
+        assert_valid_input_data(self.pgm_input)
 
         self.pgm_model = pgm.PowerGridModel(self.pgm_input)
 
@@ -157,7 +157,7 @@ class PgmProcessor:
         self.update_load_profile["status"] = 1
 
         self.time_series_mutation = {"sym_load": self.update_load_profile}
-        pgm.validation.assert_valid_batch_data(
+        assert_valid_batch_data(
             input_data=self.pgm_input,
             update_data=self.time_series_mutation,
             calculation_type=pgm.CalculationType.power_flow,
@@ -455,7 +455,6 @@ class PgmProcessor:
                 vmin=self.draw_pf_min_line, vmax=self.draw_pf_max_line
             ),
         )
-        sm._A = []
         matplotlib.pyplot.colorbar(
             sm, ax=self.draw_ax, shrink=0.75, label="Line loading [%]", anchor=(0, 1)
         )
@@ -465,7 +464,6 @@ class PgmProcessor:
                 vmin=self.draw_pf_min_load, vmax=self.draw_pf_max_load
             ),
         )
-        sm._A = []
         matplotlib.pyplot.colorbar(
             sm, ax=self.draw_ax, shrink=0.75, label="Node voltage [p.u.]", anchor=(0.2, 1)
         )
@@ -659,10 +657,10 @@ class PgmProcessor:
             width=3,
         )
         # Create and paint over bus-load connections
-        for index, row in pd.DataFrame(self.output_data["line"][frame]).iterrows():
+        for comb in pd.DataFrame(self.output_data["line"][frame]).iterrows():
             for key, value in self.draw_pf_line_bl.items():
-                if row["id"] == value:
-                    line_list_colors_value_bl[key] = 100 * row["loading"]
+                if comb[1]["id"] == value:
+                    line_list_colors_value_bl[key] = 100 * comb[1]["loading"]
         nx.draw_networkx_edges(
             self.draw_g,
             ax=self.draw_ax,
@@ -691,7 +689,6 @@ class PgmProcessor:
             vmin=self.draw_pf_min_load,
             vmax=self.draw_pf_max_load,
         )
-        return
 
     def __draw_timelapse_node_loading(self, frame: int) -> None:
         """
@@ -728,7 +725,6 @@ class PgmProcessor:
             label=minv_label,
             node_color="green",
         )
-        return
 
     def draw_timelapse_power_flow(self, frame: int) -> None:
         """
@@ -773,11 +769,11 @@ class PgmProcessor:
             "Time: " + str(self.draw_aggregate_table[0].index[frame - 1]) + " [" + str(frame) + "]"
         )
 
-    def draw_static_line_loading(self, type: str) -> None:
+    def draw_static_line_loading(self, criterion: str) -> None:
         """
         Uses MatPlotLib to draw a static frame representation of the line loading, colored by loading.
         Args:
-            type: Show total loss, maximum loading, or minimum loading
+            criterion: Show total loss, maximum loading, or minimum loading
             Valid arguments: 'power_loss', 'max_loading', 'min_loading'.
         """
         if not self.draw_ready:
@@ -799,7 +795,7 @@ class PgmProcessor:
         }
         line_list_colors = {}
 
-        match type:
+        match criterion:
             case "power_loss":
                 for edge_id, row in self.draw_aggregate_table[1].iterrows():
                     for key, value in line_list.items():
@@ -908,7 +904,6 @@ class PgmProcessor:
             cmap=self.cmap_reds,
             norm=matplotlib.pyplot.Normalize(vmin=colors_value_min, vmax=colors_value_max),
         )
-        sm._A = []
         matplotlib.pyplot.colorbar(sm, ax=self.draw_ax, shrink=0.5, label=bar_title)
 
         # Draw legend
