@@ -303,7 +303,7 @@ class PgmProcessor:
                 atol=1e-8,
             )
             return True
-        except:
+        except AssertionError:
             return False
         return False
 
@@ -543,7 +543,7 @@ class PgmProcessor:
         draw_edge_enabled = [
             key
             for key, value in nx.get_edge_attributes(self.draw_g, "enabled").items()
-            if value == True
+            if value
         ]
         # Draw enabled bus-bus lines
         draw_edge_list_bb = [
@@ -638,10 +638,10 @@ class PgmProcessor:
         node_list_colors_value = []
 
         # Create and paint over bus-bus connections
-        for index, row in pd.DataFrame(self.output_data["line"][frame]).iterrows():
+        for comb in pd.DataFrame(self.output_data["line"][frame]).iterrows():
             for key, value in self.draw_pf_line_bb.items():
-                if row["id"] == value:
-                    line_list_colors_value_bb[key] = 100 * row["loading"]
+                if comb[1]["id"] == value:
+                    line_list_colors_value_bb[key] = 100 * comb[1]["loading"]
         nx.draw_networkx_edges(
             self.draw_g,
             ax=self.draw_ax,
@@ -676,8 +676,8 @@ class PgmProcessor:
             width=3.5,
         )
         # Create and paint over nodes (buses, loads, sources)
-        for index, row in pd.DataFrame(self.output_data["node"][frame]).iterrows():
-            node_list_colors_value.append(row[self.draw_bus])
+        for comb in pd.DataFrame(self.output_data["node"][frame]).iterrows():
+            node_list_colors_value.append(comb[1][self.draw_bus])
         nx.draw_networkx_nodes(
             self.draw_g,
             ax=self.draw_ax,
@@ -698,10 +698,10 @@ class PgmProcessor:
         """
         # Get maximum voltage and where
         node_maxv = [int(self.draw_aggregate_table[0].iloc[frame, :]["Max_Voltage_Node"])]
-        maxv = "%.3f" % round(self.draw_aggregate_table[0].iloc[frame, :]["Max_Voltage"], 3)
+        maxv = f"{self.draw_aggregate_table[0].iloc[frame, :]["Max_Voltage"]:.3f}"
         # Get minimum voltage and where
         node_minv = [int(self.draw_aggregate_table[0].iloc[frame, :]["Min_Voltage_Node"])]
-        minv = "%.3f" % round(self.draw_aggregate_table[0].iloc[frame, :]["Min_Voltage"], 3)
+        minv = f"{self.draw_aggregate_table[0].iloc[frame, :]["Min_Voltage"]:.3f}"
         # Draw maximum/minimum voltage
         maxv_label = "> Max Voltage : " + maxv
         nx.draw_networkx_nodes(
