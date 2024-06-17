@@ -261,6 +261,7 @@ class LvGrid:
 
         Returns:
             Tuple of optimal tap position (node id) and corresponding performance metrics.
+            Higher tap sides corresspond to minimum taps.
         """
         # Initialize criterion variables
         criterion = -1
@@ -268,7 +269,7 @@ class LvGrid:
         # Copy network description
         pgm_input = self.pgm_input
         # Run batch power flow on all nodes to find optimal tap position
-        for x in range(pgm_input["transformer"][0][17], pgm_input["transformer"][0][18] + 1):
+        for x in range(pgm_input["transformer"][0][18], pgm_input["transformer"][0][17] + 1):
             pgm_input["transformer"][0][16] = x
 
             processor = pgm_p.PgmProcessor(
