@@ -45,8 +45,13 @@ class ProfilesDontMatchError(Exception):
 
 class PgmProcessor:
     """
-    Class that implements generic handling functionality for Power Grid Model (PGM) data structures for purposes of power flow analysis.
-    The primary purpose is to construct a Power Grid Model to an appropriate form, verify the validity of data, and run a batch time-series power flow calculation, obtaining two aggregate tables with information of interest.
+    Class that implements generic handling functionality for Power Grid Model (PGM)
+    data structures for purposes of power flow analysis.
+
+    The primary purpose is to construct a Power Grid Model to an appropriate form, 
+    verify the validity of data, and run a batch time-series power flow calculation, 
+    obtaining two aggregate tables with information of interest.
+
     To ease the understanding of the results, a method is available to graph them using NetworkX.
     """
 
@@ -57,12 +62,17 @@ class PgmProcessor:
         reactive_profile: pd.DataFrame,
     ):
         """
-        Initialization method for the PGM processor. The data is assumed to be loaded from .parquet files elsewhere.
-        The data is validated using PGM base validation functions to create a Power Grid Model. Miscellaneous variables are also initialized for later use.
+        Initialization method for the PGM processor. The data is assumed 
+            to be loaded from .parquet files elsewhere.
+        The data is validated using PGM base validation functions to create a 
+            Power Grid Model. Miscellaneous variables are 
+            also initialized for later use.
         Args:
             network_data: deserialized .json network data in PGM input format
-            active_profile: Pandas DataFrame, describing the time-series active load profile mutation for batch power flow calculations
-            reactive: Pandas DataFrame, describing the time-series reactive load profile mutation for batch power flow calculations
+            active_profile: Pandas DataFrame, describing the time-series 
+                active load profile mutation for batch power flow calculations
+            reactive: Pandas DataFrame, describing the time-series reactive 
+                load profile mutation for batch power flow calculations
         Raises:
             ValidationExceptionError: if input data in invalid
         """
@@ -117,14 +127,19 @@ class PgmProcessor:
         self, use_active_load_profile: bool = None, use_reactive_load_profile: bool = None
     ) -> None:
         """
-        Validates update data and creates the time-series batch mutations of active and reactive load profiles of network nodes for power-flow analysis.
+        Validates update data and creates the time-series batch mutations of 
+            active and reactive load profiles of network nodes for power-flow analysis.
         Args:
-            use_active_load_profile: if specificed, a different active load profile can be used than the one the class was initialized with.
-            use_reactive_load_profile: if specificed, a different active load profile can be used than the one the class was initialized with.
+            use_active_load_profile: if specificed, a different active load 
+                profile can be used than the one the class was initialized with.
+            use_reactive_load_profile: if specificed, a different active load 
+                profile can be used than the one the class was initialized with.
         Raises:
-            ProfilesDontMatchError(0): if time series of both active and reactive profiles don't match
+            ProfilesDontMatchError(0): if time series of both active and reactive 
+                profiles don't match
             ProfilesDontMatchError(1): if node IDs are not the same in either profile
-            ProfilesDontMatchError(2): if node IDs are not the same in either profile, and in the Power Grid Model .json network description
+            ProfilesDontMatchError(2): if node IDs are not the same in either profile, 
+                and in the Power Grid Model .json network description
         """
         use_active_load_profile = use_active_load_profile or self.active_load_profile
         use_reactive_load_profile = use_reactive_load_profile or self.reactive_load_profile
@@ -165,7 +180,8 @@ class PgmProcessor:
 
     def run_batch_process(self) -> None:
         """
-        Run the batch process on the input data according to the load update profile. Results are stored in a class variable.
+        Run the batch process on the input data according to the load 
+            update profile. Results are stored in a class variable.
         """
         self.output_data = self.pgm_model.calculate_power_flow(
             update_data=self.time_series_mutation,
@@ -269,11 +285,14 @@ class PgmProcessor:
     ) -> bool:
         """
         Compare the aggregated output tables to other aggeregated output tables of the same format.
-        This method can be used to compare to pre-calculated values for checking algorithm validity, or for comparsion with hand-calculations, PowerWorld simulations, SimuLink simulations, etc.
+        This method can be used to compare to pre-calculated values for checking algorithm 
+            validity, or for comparsion with hand-calculations, PowerWorld simulations, 
+            SimuLink simulations, etc.
         Args:
             aggregate_results: 2-element list of data frames for the 2 required aggregated tables
             expected_per_line: Expected output for the per-line quantities (loading and losses)
-            expected_per_timestamp: Expected output for the per-timestamp quantities (voltage records)
+            expected_per_timestamp: Expected output f
+                or the per-timestamp quantities (voltage records)
         Returns:
             True if both aggregate tables are equal, false otherwise.
         """
@@ -359,7 +378,8 @@ class PgmProcessor:
                     transformer[1], transformer[2], id=transformer[0], type="transformer"
                 )
 
-        # Create colormaps (since <0.1 tend to disappear in exported gif, most likely due to compression)
+        # Create colormaps (since <0.1 tend to disappear in exported gif,
+        #   most likely due to compression)
         self.cmap_reds = matplotlib.colors.LinearSegmentedColormap.from_list(
             "cmap_reds", matplotlib.pyplot.cm.Reds(np.linspace(0.2, 1.0))
         )
@@ -424,7 +444,8 @@ class PgmProcessor:
             if min(x[draw_bus] < self.draw_pf_min_load):
                 self.draw_pf_min_load = min(x[draw_bus])
 
-        # Get list of bus-bus lines. Assumed that these are valid lines, in same order as self.draw_g.edges()
+        # Get list of bus-bus lines. Assumed that these are valid lines,
+        #   in same order as self.draw_g.edges()
         draw_pf_line_bb_mask = [
             key
             for key, value in nx.get_edge_attributes(self.draw_g, "type").items()
@@ -435,7 +456,8 @@ class PgmProcessor:
             for key, value in nx.get_edge_attributes(self.draw_g, "id").items()
             if key in draw_pf_line_bb_mask
         }
-        # Get list of bus-load lines. Assumed that these are valid lines, in same order as self.draw_g.edges()
+        # Get list of bus-load lines. Assumed that these are valid lines,
+        #   in same order as self.draw_g.edges()
         draw_pf_line_bl_mask = [
             key
             for key, value in nx.get_edge_attributes(self.draw_g, "type").items()
@@ -734,7 +756,8 @@ class PgmProcessor:
         """
         if not self.draw_ready or not self.output_ready:
             raise SystemError(
-                "Drawing network is uninitialized or output is not calculated. Call draw_init_power_flow before animation"
+                "Drawing network is uninitialized or output is not calculated."
+                + "Call draw_init_power_flow before animation"
             )
 
         self.draw_ax.clear()
@@ -771,7 +794,8 @@ class PgmProcessor:
 
     def draw_static_line_loading(self, criterion: str) -> None:
         """
-        Uses MatPlotLib to draw a static frame representation of the line loading, colored by loading.
+        Uses MatPlotLib to draw a static frame representation of the 
+            line loading, colored by loading.
         Args:
             criterion: Show total loss, maximum loading, or minimum loading
             Valid arguments: 'power_loss', 'max_loading', 'min_loading'.
@@ -911,7 +935,8 @@ class PgmProcessor:
 
     def draw_static_simple_load_active(self, data: dict[str, np.ndarray], load_id: int, ax) -> None:
         """
-        Uses MatPlotLib to draw a static, simple line plot of active loading for a specified symmetrical load.
+        Uses MatPlotLib to draw a static, simple line plot of active loading for 
+            a specified symmetrical load.
         Args:
             data: output data from a batch power flow analysis
             load_id: load_id to plot
