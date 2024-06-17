@@ -80,7 +80,10 @@ class ProfilesDontMatchError(Exception):
         )
 
 
-class EvProfilesDontMatchSymLoad(Exception):
+class EvProfilesDontMatchSymLoadError(Exception):
+    """
+    Error class for class EvProfilesDontMatchSymLoadError
+    """
 
     def __init__(self):
         """
@@ -236,16 +239,23 @@ class LV_grid:
         if not len(list(self.ev_active_profile.columns.values)) == (
             len(self.pgm_input["sym_load"])
         ):
-            raise EvProfilesDontMatchSymLoad()
+            raise EvProfilesDontMatchSymLoadError()
         # ------------------------------------------------
 
     def optimal_tap_position(self, optimization_criterion: str) -> tuple[int, float]:
         """
         Optimize the tap position of the transformer in the LV grid.
-        Run a one time power flow calculation on every possible tap postition for every timestamp (https://power-grid-model.readthedocs.io/en/stable/examples/Transformer%20Examples.html).
-        The most opmtimized tap position should have the min total energy loss of all lines and whole period and min. deviation of p.u. node voltages w.r.t. 1 p.u.
+        
+        Run a one time power flow calculation on every possible tap 
+        postition for every timestamp 
+        (https://power-grid-model.readthedocs.io/en/stable/examples/Transformer%20Examples.html).
+
+        The most opmtimized tap position should have the min total energy loss of 
+        all lines and whole period and min. deviation of p.u. node voltages w.r.t. 1 p.u.
         (We think that total energy loss has more importance than the Delta p.u.)
-        The user can choose the criteria for optimization, so thye can choose how low the energy_loss and voltage_deviation should be for it to be valid.
+
+        The user can choose the criteria for optimization, so thye can choose how low 
+        the energy_loss and voltage_deviation should be for it to be valid.
 
         Args:
             optimization_criteria: Criteria for optimization, either 'energy_loss' or 'voltage_deviation'.
@@ -269,11 +279,11 @@ class LV_grid:
             )
             processor.create_update_model()
             processor.run_batch_process()
-            [aggregate1, aggregate2] = processor.get_aggregate_results()
+            aggregate = processor.get_aggregate_results()
             if optimization_criterion == "energy_loss":
-                result = aggregate2["Total_Loss"].sum()
+                result = aggregate[1]["Total_Loss"].sum()
             elif optimization_criterion == "voltage_deviation":
-                result = aggregate1["Max_Voltage"].mean() + aggregate1["Min_Voltage"].mean() - 2
+                result = aggregate[0]["Max_Voltage"].mean() + aggregate[0]["Min_Voltage"].mean() - 2
             else:
                 break
             if criterion == -1:

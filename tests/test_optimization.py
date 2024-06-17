@@ -172,7 +172,7 @@ def test_errors():
     test_number_EV = copy.deepcopy(ev_active_profile)
     new_column = copy.deepcopy(test_number_EV[1])
     test_number_EV[4] = new_column
-    with pytest.raises(psso.EvProfilesDontMatchSymLoad) as excinfo:
+    with pytest.raises(psso.EvProfilesDontMatchSymLoadError) as excinfo:
         psso.LV_grid(network_data, active_profile, reactive_profile, test_number_EV, meta_data)
 
 
