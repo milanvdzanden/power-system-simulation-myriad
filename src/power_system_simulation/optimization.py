@@ -240,7 +240,7 @@ class LvGrid:
         self.house_profile_id = None
         self.processor = None
 
-    def optimal_tap_position(self, optimization_criterion: str) -> tuple[int, float]:
+    def optimal_tap_position(self, optimization_criterion: str) -> tuple[int, tuple[float, str]]:
         """
         Optimize the tap position of the transformer in the LV grid.
 
@@ -260,8 +260,12 @@ class LvGrid:
               or 'voltage_deviation'.
 
         Returns:
-            Tuple of optimal tap position (node id) and corresponding performance metrics.
-            Higher tap sides corresspond to minimum taps.
+            Tuple of optimal tap position (node id) and a tuple of corresponding performance 
+            metrics - criterion quantity and comment. Comment is:
+                'max_tap' if optimal tap position is maximum
+                'min_tap' if optimal tap position is minimum
+                'nominal_tap' if optimal if tap position is nominal
+                'in_between_tap' if optimal tap position is none of the above
         """
         # Initialize criterion variables
         criterion = -1
@@ -291,7 +295,20 @@ class LvGrid:
                 criterion = result
                 criterion_tap = x
 
-        return tuple([criterion_tap, criterion])
+        # Max
+        if criterion_tap == pgm_input["transformer"][0][17]:
+            tap_comment = 'max_tap'
+        # Min
+        elif criterion_tap == pgm_input["transformer"][0][18]:
+            tap_comment = 'min_tap'
+        # Nominal
+        elif criterion_tap == pgm_input["transformer"][0][19]:
+            tap_comment = 'nominal_tap'
+        # Other
+        else:
+            tap_comment = 'in_between_tap'
+
+        return tuple([criterion_tap, tuple[criterion, tap_comment]])
 
     def ev_penetration_level(self, penetration_level: float, display=False):
         """
