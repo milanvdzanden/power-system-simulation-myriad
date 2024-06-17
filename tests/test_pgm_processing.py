@@ -5,11 +5,10 @@ src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tests/t
 sys.path.append(src_dir)
 src_dir = src_dir.replace("\\", "/")
 
-import pytest
-
 import matplotlib.pyplot as plt
 import networkx as nx
 import pandas as pd
+import pytest
 from power_grid_model.utils import json_deserialize, json_serialize
 
 import power_system_simulation.pgm_processing as pgm_p
@@ -113,12 +112,13 @@ def test_pgm_processing():
     p.draw_to_networkx(aggregate_results, ax)
     p.draw_init_power_flow()
     p.draw_init()
-    p.draw_static_line_loading(criterion='power_loss')
-    p.draw_static_line_loading(criterion='max_loading')
-    p.draw_static_line_loading(criterion='min_loading')
+    p.draw_static_line_loading(criterion="power_loss")
+    p.draw_static_line_loading(criterion="max_loading")
+    p.draw_static_line_loading(criterion="min_loading")
     p.draw_static_simple_load_active(p.output_data, 13, ax)
     p.draw_timelapse_power_flow(1)
     p.draw_timelapse_node_loading(1)
     # Missing test cases are all the error checks - skip (not expected)
+
 
 test_pgm_processing()

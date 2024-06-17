@@ -245,16 +245,16 @@ class LV_grid:
     def optimal_tap_position(self, optimization_criterion: str) -> tuple[int, float]:
         """
         Optimize the tap position of the transformer in the LV grid.
-        
-        Run a one time power flow calculation on every possible tap 
-        postition for every timestamp 
+
+        Run a one time power flow calculation on every possible tap
+        postition for every timestamp
         (https://power-grid-model.readthedocs.io/en/stable/examples/Transformer%20Examples.html).
 
-        The most opmtimized tap position should have the min total energy loss of 
+        The most opmtimized tap position should have the min total energy loss of
         all lines and whole period and min. deviation of p.u. node voltages w.r.t. 1 p.u.
         (We think that total energy loss has more importance than the Delta p.u.)
 
-        The user can choose the criteria for optimization, so thye can choose how low 
+        The user can choose the criteria for optimization, so thye can choose how low
         the energy_loss and voltage_deviation should be for it to be valid.
 
         Args:

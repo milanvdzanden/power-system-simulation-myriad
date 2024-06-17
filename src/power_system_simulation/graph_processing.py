@@ -238,7 +238,7 @@ class GraphProcessor:
 
     def find_downstream_vertices(self, edge_id: int) -> List[int]:
         """
-        Returns a list of all vertices that are downstream from the 
+        Returns a list of all vertices that are downstream from the
         source vertex from the given edge.
 
         Args:

@@ -10,9 +10,8 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import power_grid_model as pgm
-
-from power_grid_model.validation import assert_valid_input_data, assert_valid_batch_data
 from power_grid_model import CalculationMethod
+from power_grid_model.validation import assert_valid_batch_data, assert_valid_input_data
 from scipy import integrate
 
 # ValidationError: included in package
@@ -48,8 +47,8 @@ class PgmProcessor:
     Class that implements generic handling functionality for Power Grid Model (PGM)
     data structures for purposes of power flow analysis.
 
-    The primary purpose is to construct a Power Grid Model to an appropriate form, 
-    verify the validity of data, and run a batch time-series power flow calculation, 
+    The primary purpose is to construct a Power Grid Model to an appropriate form,
+    verify the validity of data, and run a batch time-series power flow calculation,
     obtaining two aggregate tables with information of interest.
 
     To ease the understanding of the results, a method is available to graph them using NetworkX.
@@ -62,16 +61,16 @@ class PgmProcessor:
         reactive_profile: pd.DataFrame,
     ):
         """
-        Initialization method for the PGM processor. The data is assumed 
+        Initialization method for the PGM processor. The data is assumed
             to be loaded from .parquet files elsewhere.
-        The data is validated using PGM base validation functions to create a 
-            Power Grid Model. Miscellaneous variables are 
+        The data is validated using PGM base validation functions to create a
+            Power Grid Model. Miscellaneous variables are
             also initialized for later use.
         Args:
             network_data: deserialized .json network data in PGM input format
-            active_profile: Pandas DataFrame, describing the time-series 
+            active_profile: Pandas DataFrame, describing the time-series
                 active load profile mutation for batch power flow calculations
-            reactive: Pandas DataFrame, describing the time-series reactive 
+            reactive: Pandas DataFrame, describing the time-series reactive
                 load profile mutation for batch power flow calculations
         Raises:
             ValidationExceptionError: if input data in invalid
@@ -122,23 +121,22 @@ class PgmProcessor:
         self.draw_pf_line_bb = None
         self.draw_pf_line_bl = None
 
-
     def create_update_model(
         self, use_active_load_profile: bool = None, use_reactive_load_profile: bool = None
     ) -> None:
         """
-        Validates update data and creates the time-series batch mutations of 
+        Validates update data and creates the time-series batch mutations of
             active and reactive load profiles of network nodes for power-flow analysis.
         Args:
-            use_active_load_profile: if specificed, a different active load 
+            use_active_load_profile: if specificed, a different active load
                 profile can be used than the one the class was initialized with.
-            use_reactive_load_profile: if specificed, a different active load 
+            use_reactive_load_profile: if specificed, a different active load
                 profile can be used than the one the class was initialized with.
         Raises:
-            ProfilesDontMatchError(0): if time series of both active and reactive 
+            ProfilesDontMatchError(0): if time series of both active and reactive
                 profiles don't match
             ProfilesDontMatchError(1): if node IDs are not the same in either profile
-            ProfilesDontMatchError(2): if node IDs are not the same in either profile, 
+            ProfilesDontMatchError(2): if node IDs are not the same in either profile,
                 and in the Power Grid Model .json network description
         """
         use_active_load_profile = use_active_load_profile or self.active_load_profile
@@ -180,7 +178,7 @@ class PgmProcessor:
 
     def run_batch_process(self) -> None:
         """
-        Run the batch process on the input data according to the load 
+        Run the batch process on the input data according to the load
             update profile. Results are stored in a class variable.
         """
         self.output_data = self.pgm_model.calculate_power_flow(
@@ -285,8 +283,8 @@ class PgmProcessor:
     ) -> bool:
         """
         Compare the aggregated output tables to other aggeregated output tables of the same format.
-        This method can be used to compare to pre-calculated values for checking algorithm 
-            validity, or for comparsion with hand-calculations, PowerWorld simulations, 
+        This method can be used to compare to pre-calculated values for checking algorithm
+            validity, or for comparsion with hand-calculations, PowerWorld simulations,
             SimuLink simulations, etc.
         Args:
             aggregate_results: 2-element list of data frames for the 2 required aggregated tables
@@ -563,9 +561,7 @@ class PgmProcessor:
         )
 
         draw_edge_enabled = [
-            key
-            for key, value in nx.get_edge_attributes(self.draw_g, "enabled").items()
-            if value
+            key for key, value in nx.get_edge_attributes(self.draw_g, "enabled").items() if value
         ]
         # Draw enabled bus-bus lines
         draw_edge_list_bb = [
@@ -794,7 +790,7 @@ class PgmProcessor:
 
     def draw_static_line_loading(self, criterion: str) -> None:
         """
-        Uses MatPlotLib to draw a static frame representation of the 
+        Uses MatPlotLib to draw a static frame representation of the
             line loading, colored by loading.
         Args:
             criterion: Show total loss, maximum loading, or minimum loading
@@ -935,7 +931,7 @@ class PgmProcessor:
 
     def draw_static_simple_load_active(self, data: dict[str, np.ndarray], load_id: int, ax) -> None:
         """
-        Uses MatPlotLib to draw a static, simple line plot of active loading for 
+        Uses MatPlotLib to draw a static, simple line plot of active loading for
             a specified symmetrical load.
         Args:
             data: output data from a batch power flow analysis
