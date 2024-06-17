@@ -296,10 +296,10 @@ class LvGrid:
                 criterion_tap = x
 
         # Max
-        if criterion_tap == pgm_input["transformer"][0][17]:
+        if criterion_tap == pgm_input["transformer"][0][18]:
             tap_comment = 'max_tap'
         # Min
-        elif criterion_tap == pgm_input["transformer"][0][18]:
+        elif criterion_tap == pgm_input["transformer"][0][17]:
             tap_comment = 'min_tap'
         # Nominal
         elif criterion_tap == pgm_input["transformer"][0][19]:
