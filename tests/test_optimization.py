@@ -76,8 +76,8 @@ def test_optimization():
     aggregate_results[1].to_parquet(src_dir + "/calculated_output_per_line.parquet")
 
     # Test optimal tap position
-    #p.optimal_tap_position("energy_loss")
-    #p.optimal_tap_position("voltage_deviation")
+    p.optimal_tap_position("energy_loss")
+    p.optimal_tap_position("voltage_deviation")
     # Test optimal tap position, with wrong directive (should return -1, -1)
     assert set(p.optimal_tap_position("wrong_directive")) == set([-1, -1])
 
@@ -115,9 +115,7 @@ def test_errors():
     test_same_nodes["transformer"]["to_node"] = 2
 
     with pytest.raises(psso.LVFeederError, match=r".*T1") as excinfo:
-        psso.LvGrid(
-            test_same_nodes, active_profile, reactive_profile, ev_active_profile, meta_data
-        )
+        psso.LvGrid(test_same_nodes, active_profile, reactive_profile, ev_active_profile, meta_data)
     # 5 The grid is fully connected in the initial state.
     test_fully_connected = copy.deepcopy(network_data)
     test_fully_connected["line"]["to_status"][4] = 0

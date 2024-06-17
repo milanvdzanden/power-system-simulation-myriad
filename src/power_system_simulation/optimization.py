@@ -9,8 +9,8 @@ import random
 import networkx as nx
 import numpy as np
 import pandas as pd
-from power_grid_model.validation import assert_valid_input_data
 import power_grid_model as pgm
+from power_grid_model.validation import assert_valid_input_data
 
 import power_system_simulation.graph_processing as pss
 import power_system_simulation.pgm_processing as pgm_p
@@ -239,7 +239,6 @@ class LvGrid:
         self.reactive_load_profile_ev = None
         self.house_profile_id = None
         self.processor = None
-
 
     def optimal_tap_position(self, optimization_criterion: str) -> tuple[int, float]:
         """
