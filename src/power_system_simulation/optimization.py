@@ -5,18 +5,12 @@ Building a package with low voltage grid analytics functions.
 import copy
 import math
 import random
-import warnings
-from typing import List
-
-with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
-    # suppress warning about pyarrow as future required dependency
-    from pandas import DataFrame
 
 import networkx as nx
 import numpy as np
 import pandas as pd
 import power_grid_model as pgm
-from power_grid_model import *
+from power_grid_model.validation import assert_valid_input_data
 
 import power_system_simulation.graph_processing as pss
 import power_system_simulation.pgm_processing as pgm_p
@@ -28,7 +22,7 @@ class LvGridOneTransformerAndSource(Exception):
     """
 
     def __init__(self):
-        Exception.__init__(self, "The LV_Grid does not have one source and one tranformer.")
+        Exception.__init__(self, "The LvGrid does not have one source and one tranformer.")
 
 
 class LVFeederError(Exception):
@@ -95,7 +89,7 @@ class EvProfilesDontMatchSymLoadError(Exception):
         Exception.__init__(self, "The amount of EVProfiles do not match the amount of SymLoads.")
 
 
-class LV_grid:
+class LvGrid:
     """
     DOCSTRING
     """
@@ -115,7 +109,7 @@ class LV_grid:
         self.ev_active_profile = ev_active_profile
 
         # 1 The LV grid should be a valid PGM input data.
-        pgm.validation.assert_valid_input_data(self.pgm_input)
+        assert_valid_input_data(self.pgm_input)
 
         # Create powergrid model
         self.pgm_model = pgm.PowerGridModel(self.pgm_input)
@@ -157,8 +151,6 @@ class LV_grid:
         edge_ids = [edge[0] for edge in self.pgm_input["line"]]
         edge_vertex_id_pairs = [(edge[1], edge[2]) for edge in self.pgm_input["line"]]
         edge_enabled = [(edge[3] == 1 and edge[4] == 1) for edge in self.pgm_input["line"]]
-        source_vertex_id = self.pgm_input["source"][0][1]
-
         # Pretend all transformers are short circuits, so that GraphProcessor can use it
         for transformer in self.pgm_input["transformer"]:
             edge_vertex_id_pairs.append((transformer[1], transformer[2]))
@@ -242,7 +234,13 @@ class LV_grid:
             raise EvProfilesDontMatchSymLoadError()
         # ------------------------------------------------
 
-    def optimal_tap_position(self, optimization_criterion: str) -> tuple[int, float]:
+        # Define memeber variables for later use
+        self.active_load_profile_ev = None
+        self.reactive_load_profile_ev = None
+        self.house_profile_id = None
+        self.processor = None
+
+    def optimal_tap_position(self, optimization_criterion: str) -> list[tuple, float, str]:
         """
         Optimize the tap position of the transformer in the LV grid.
 
@@ -262,19 +260,23 @@ class LV_grid:
               or 'voltage_deviation'.
 
         Returns:
-            Tuple of optimal tap position (node id) and corresponding performance metrics.
+            List of optimal tap position (node id) and corresponding performance
+            metrics - criterion quantity and comment. Comment is:
+                'max_tap' if optimal tap position is maximum
+                'min_tap' if optimal tap position is minimum
+                'nominal_tap' if optimal if tap position is nominal
+                'in_between_tap' if optimal tap position is none of the above
         """
-        # Infer node amount from network description
-        node_amount = pd.DataFrame([node.tolist() for node in self.pgm_input["node"]])[0].max()
-
         # Initialize criterion variables
         criterion = -1
-        criterion_node_id = -1
+        criterion_tap = -1
+        tap_comment = "wrong_directive"
         # Copy network description
         pgm_input = self.pgm_input
         # Run batch power flow on all nodes to find optimal tap position
-        for x in range(1, node_amount + 1):
-            pgm_input["transformer"][0][2] = x
+        for x in range(pgm_input["transformer"][0][18], pgm_input["transformer"][0][17] + 1):
+            pgm_input["transformer"][0][16] = x
+
             processor = pgm_p.PgmProcessor(
                 pgm_input, self.active_load_profile, self.reactive_load_profile
             )
@@ -289,14 +291,28 @@ class LV_grid:
                 break
             if criterion == -1:
                 criterion = result
-                criterion_node_id = x
+                criterion_tap = x
             elif result < criterion:
                 criterion = result
-                criterion_node_id = x
+                criterion_tap = x
 
-        return tuple([criterion_node_id, criterion])
+        if criterion != -1:
+            # Max
+            if criterion_tap == pgm_input["transformer"][0][18]:
+                tap_comment = "max_tap"
+            # Min
+            elif criterion_tap == pgm_input["transformer"][0][17]:
+                tap_comment = "min_tap"
+            # Nominal
+            elif criterion_tap == pgm_input["transformer"][0][19]:
+                tap_comment = "nominal_tap"
+            # Other
+            else:
+                tap_comment = "in_between_tap"
 
-    def EV_penetration_level(self, penetration_level: float, display=False):
+        return [criterion_tap, criterion, tap_comment]
+
+    def ev_penetration_level(self, penetration_level: float, display=False):
         """
         Randomly adding EV charging profiles according to a
         couple criteria using the input 'penetration_level'.
@@ -349,9 +365,9 @@ class LV_grid:
         feeder_nodes = {}
         feeders = []
         feeder_houses = {}
-        total_real_house_per_LV = []
-        EV_houses = {}
-        House_Profile = {}
+        total_real_house_per_lv = []
+        ev_houses = {}
+        house_profile = {}
 
         # See which feeder has which nodes
         for feeder_id in self.meta_data["lv_feeders"]:
@@ -367,21 +383,21 @@ class LV_grid:
         # Get which houses are from which feeder
         for x in range(len(feeders)):
             houses = [i for i in sym_houses if i in feeder_nodes[feeders[x]]]
-            total_real_house_per_LV.append(houses)
+            total_real_house_per_lv.append(houses)
         for x in range(len(feeders)):
             feeder_id = self.meta_data["lv_feeders"][x % len(self.meta_data["lv_feeders"])]
-            feeder_houses[feeder_id] = total_real_house_per_LV[x]
+            feeder_houses[feeder_id] = total_real_house_per_lv[x]
 
         # Get which houses will have an EV per feeder
         for feeder_id in self.meta_data["lv_feeders"]:
             random_houses_ev = random.sample(feeder_houses[feeder_id], nmr_ev_per_lv_feeder)
-            EV_houses[feeder_id] = random_houses_ev
+            ev_houses[feeder_id] = random_houses_ev
         parquet_df = pd.DataFrame(self.ev_active_profile)
         columns = list(parquet_df.columns.values)
 
         # Get random profiles with no repetitives
         random.shuffle(columns)
-        amount_profiles = len(EV_houses)
+        amount_profiles = len(ev_houses)
         random_profile = [
             columns[i : i + nmr_ev_per_lv_feeder]
             for i in range(0, len(columns), nmr_ev_per_lv_feeder)
@@ -391,25 +407,25 @@ class LV_grid:
         index_of_feeders = 0
         for x in feeders:
             index_of_random_profile = 0
-            for i in EV_houses[x]:
-                House_number_list = EV_houses[x]
-                House_number = House_number_list[index_of_random_profile]
-                House_Profile[House_number] = random_profile[index_of_feeders][
+            for i in ev_houses[x]:
+                house_number_list = ev_houses[x]
+                house_number = house_number_list[index_of_random_profile]
+                house_profile[house_number] = random_profile[index_of_feeders][
                     index_of_random_profile
                 ]
                 index_of_random_profile = index_of_random_profile + 1
             index_of_feeders = index_of_feeders + 1
 
         # Assign sym_load nodes to input_network_data.json IDs
-        House_Profile_Listed = list(House_Profile.keys())
-        House_Profile_Id = dict()
+        house_profile_listed = list(house_profile.keys())
+        house_profile_id = {}
 
         for x in range(0, len(self.pgm_input["sym_load"]) - 1):
-            for node_id in House_Profile_Listed:
+            for node_id in house_profile_listed:
                 node_named = self.pgm_input["sym_load"][x].tolist()[1]
                 if node_named == node_id:
-                    id = self.pgm_input["sym_load"][x].tolist()[0]
-                    House_Profile_Id[id] = House_Profile[node_named]
+                    house_id = self.pgm_input["sym_load"][x].tolist()[0]
+                    house_profile_id[house_id] = house_profile[node_named]
 
         # Modify the active and reactive load profile according to the EV house profile
         # Profiles are columns - 0 to 4, inclusive
@@ -417,18 +433,18 @@ class LV_grid:
         self.reactive_load_profile_ev = self.reactive_load_profile.copy()
 
         for id1 in self.active_load_profile_ev.columns:
-            for id2 in list(House_Profile_Id.keys()):
+            for id2 in list(house_profile_id.keys()):
                 if id1 == id2:
-                    self.active_load_profile_ev[id1] = self.ev_active_profile[House_Profile_Id[id2]]
+                    self.active_load_profile_ev[id1] = self.ev_active_profile[house_profile_id[id2]]
                     self.reactive_load_profile_ev[id1] = 0
 
         # Save in-class for plotting if needed
-        self.House_Profile_Id = House_Profile_Id
+        self.house_profile_id = house_profile_id
 
         # Run the batch calculation, provide True as arg to print DataFrame
-        return self.__EV_penetration_level_evaluate(display)
+        return self.__ev_penetration_level_evaluate(display)
 
-    def __EV_penetration_level_evaluate(self, display=False) -> list[pd.DataFrame, pd.DataFrame]:
+    def __ev_penetration_level_evaluate(self, display=False) -> list[pd.DataFrame, pd.DataFrame]:
         """
         Evaluate the time-series batch power flow calculation on the EV-profiled network.
         Args:
