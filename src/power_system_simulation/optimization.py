@@ -258,7 +258,8 @@ class LV_grid:
         the energy_loss and voltage_deviation should be for it to be valid.
 
         Args:
-            optimization_criteria: Criteria for optimization, either 'energy_loss' or 'voltage_deviation'.
+            optimization_criteria: Criteria for optimization, either 'energy_loss'
+              or 'voltage_deviation'.
 
         Returns:
             Tuple of optimal tap position (node id) and corresponding performance metrics.
