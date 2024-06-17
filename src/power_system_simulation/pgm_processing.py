@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import power_grid_model as pgm
 
-# from power_grid_model.validation import *
+from power_grid_model.validation import assert_valid_input_data, assert_valid_batch_data
 from power_grid_model import CalculationMethod
 from scipy import integrate
 
@@ -84,6 +84,34 @@ class PgmProcessor:
         # Indicate that the graph for drawing aggregate and output data is not ready
         self.draw_ready = False
         self.output_ready = False
+
+        # Define drawing self-attributes
+        # These variables are internal as animation handling using matplotlib does not work properly
+        # With functions that pass any attributes other than frame
+        self.draw_g = None
+        self.draw_aggregate_table = None
+        self.draw_ax = None
+
+        self.cmap_reds = None
+        self.cmap_blues = None
+
+        self.draw_pos = None
+
+        self.draw_node_size = 0
+        self.draw_node_connecting_size = 0
+        self.draw_line_width = 0.0
+        self.draw_line_disabled_width = 0.0
+
+        self.draw_pf_max_line = 0
+        self.draw_pf_min_line = 0
+        self.draw_pf_max_load = 0
+        self.draw_pf_min_load = 0
+
+        self.draw_bus = None
+
+        self.draw_pf_line_bb = None
+        self.draw_pf_line_bl = None
+
 
     def create_update_model(
         self, use_active_load_profile: bool = None, use_reactive_load_profile: bool = None
