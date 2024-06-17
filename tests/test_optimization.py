@@ -79,7 +79,8 @@ def test_optimization():
     p.optimal_tap_position("energy_loss")
     p.optimal_tap_position("voltage_deviation")
     # Test optimal tap position, with wrong directive (should return -1, -1)
-    assert set(p.optimal_tap_position("wrong_directive")) == set([-1, -1])
+    wrong_directive = "wrong_directive"
+    assert p.optimal_tap_position("wrong_directive") == [-1, -1, wrong_directive]
 
 
 def test_errors():
