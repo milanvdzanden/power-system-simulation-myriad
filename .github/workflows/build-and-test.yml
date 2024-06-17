@@ -34,11 +34,6 @@ jobs:
       run: |
         pytest
 
-    - name: Re-format to standard
-      run: |
-        isort .
-        black .
-
     - name: Check the format
       run: |
         isort --check .

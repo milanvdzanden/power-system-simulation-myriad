@@ -11,8 +11,10 @@ src_dir = src_dir.replace("\\", "/")
 
 import copy as copy
 import json
+
 import networkx as nx
 from power_grid_model.utils import json_deserialize, json_serialize
+
 import power_system_simulation.graph_processing as pss
 import power_system_simulation.optimization as psso
 
@@ -65,8 +67,8 @@ def test_optimization():
     """
     p = psso.LV_grid(network_data, active_profile, reactive_profile, ev_active_profile, meta_data)
     p.n_1_calculation(18)
-    
-     # Test EV penetration level; Obtain aggregated results
+
+    # Test EV penetration level; Obtain aggregated results
     aggregate_results = p.EV_penetration_level(0.8, True)
 
     # Save aggregate results (for drawing tests in external notebook)
@@ -78,7 +80,8 @@ def test_optimization():
     p.optimal_tap_position("voltage_deviation")
     # Test optimal tap position, with wrong directive (should return -1, -1)
     assert set(p.optimal_tap_position("wrong_directive")) == set([-1, -1])
-    
+
+
 def test_errors():
     global network_data, meta_data, active_profile, reactive_profile, ev_active_profile
 
@@ -169,9 +172,10 @@ def test_errors():
     test_number_EV = copy.deepcopy(ev_active_profile)
     new_column = copy.deepcopy(test_number_EV[1])
     test_number_EV[4] = new_column
-    with pytest.raises(psso.EvProfilesDontMatchSymLoad) as excinfo:
+    with pytest.raises(psso.EvProfilesDontMatchSymLoadError) as excinfo:
         psso.LV_grid(network_data, active_profile, reactive_profile, test_number_EV, meta_data)
-    
+
+
 test_optimization()
 test_errors()
 

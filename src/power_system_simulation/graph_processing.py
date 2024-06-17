@@ -237,6 +237,15 @@ class GraphProcessor:
         self.source_vertex_id = source_vertex_id
 
     def find_downstream_vertices(self, edge_id: int) -> List[int]:
+        """
+        Returns a list of all vertices that are downstream from the
+        source vertex from the given edge.
+
+        Args:
+            edge_id: ID of the edge to find the downstream vertices from
+        Returns:
+            A list of downstream vertices
+        """
         output = []
 
         # Check if disabled_edge_id exists
@@ -263,7 +272,7 @@ class GraphProcessor:
         for edge_to_check in self.edge_vertex_id_pairs:
             edge_to_check_index = self.edge_vertex_id_pairs.index(edge_to_check)
 
-            if self.edge_enabled[edge_to_check_index] == True:
+            if self.edge_enabled[edge_to_check_index]:
                 edge_ids_enabled_before.append(self.edge_ids[edge_to_check_index])
                 edge_vertex_id_pairs_enabled_before.append(edge_to_check)
 
@@ -285,8 +294,8 @@ class GraphProcessor:
 
         list_of_islands_after = []
 
-        for i, c in enumerate(nx.connected_components(graph)):
-            list_of_islands_after.append(list(c))
+        for comp in enumerate(nx.connected_components(graph)):
+            list_of_islands_after.append(list(comp[1]))
 
         output_list = []
         # Step 3: Check which remaining islands contain the source vertex, the other one
@@ -306,7 +315,7 @@ class GraphProcessor:
 
         try:
             output = output_list[0]
-        except:
+        except IndexError:
             output = []
         return output
 
@@ -367,7 +376,7 @@ class GraphProcessor:
         for edge in self.edge_ids:
             current_edge_index = self.edge_ids.index(edge)
             # Check if the edge is disabled, if so, continue
-            if self.edge_enabled[current_edge_index] == False:
+            if not self.edge_enabled[current_edge_index]:
                 # Variable for temporary Edge disabling and then enable the edge
                 # in question (for the example above: edge ID 7 or 8)
                 temp_edge_enabled = self.edge_enabled.copy()
