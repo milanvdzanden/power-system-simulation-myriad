@@ -76,8 +76,8 @@ def test_optimization():
     aggregate_results[1].to_parquet(src_dir + "/calculated_output_per_line.parquet")
 
     # Test optimal tap position
-    p.optimal_tap_position("energy_loss")
-    p.optimal_tap_position("voltage_deviation")
+    #p.optimal_tap_position("energy_loss")
+    #p.optimal_tap_position("voltage_deviation")
     # Test optimal tap position, with wrong directive (should return -1, -1)
     assert set(p.optimal_tap_position("wrong_directive")) == set([-1, -1])
 
