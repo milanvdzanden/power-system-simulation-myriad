@@ -262,17 +262,15 @@ class LvGrid:
         Returns:
             Tuple of optimal tap position (node id) and corresponding performance metrics.
         """
-        # Infer node amount from network description
-        node_amount = pd.DataFrame([node.tolist() for node in self.pgm_input["node"]])[0].max()
-
         # Initialize criterion variables
         criterion = -1
-        criterion_node_id = -1
+        criterion_tap = -1
         # Copy network description
         pgm_input = self.pgm_input
         # Run batch power flow on all nodes to find optimal tap position
-        for x in range(1, node_amount + 1):
-            pgm_input["transformer"][0][2] = x
+        for x in range(pgm_input["transformer"][0][17], pgm_input["transformer"][0][18] + 1):
+            pgm_input["transformer"][0][16] = x
+
             processor = pgm_p.PgmProcessor(
                 pgm_input, self.active_load_profile, self.reactive_load_profile
             )
@@ -287,12 +285,12 @@ class LvGrid:
                 break
             if criterion == -1:
                 criterion = result
-                criterion_node_id = x
+                criterion_tap = x
             elif result < criterion:
                 criterion = result
-                criterion_node_id = x
+                criterion_tap = x
 
-        return tuple([criterion_node_id, criterion])
+        return tuple([criterion_tap, criterion])
 
     def ev_penetration_level(self, penetration_level: float, display=False):
         """
